@@ -1,9 +1,14 @@
 [package]
 name = "advent-of-code-2024"
+authors = ["ketrab2004"]
+description = "My Advent of Code 2024 solutions."
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.38"
+clap = { version = "4.5.21", features = ["derive", "cargo"] }
+
 
 [dev-dependencies]
 aoc-cli = "0.12.0"
