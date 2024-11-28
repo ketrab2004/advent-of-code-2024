@@ -1,6 +1,7 @@
 use std::{cmp::{min, Ordering}, fs::File, io::{self, BufReader, Read}, path::PathBuf};
 use clap::{crate_authors, crate_description, crate_version, Parser};
 use chrono::{Datelike, Utc};
+mod solutions;
 
 
 #[derive(Parser, Debug)]
@@ -22,13 +23,16 @@ struct Args {
     day: Option<u32>,
 }
 
+pub type Input = BufReader<Box<dyn Read>>;
+pub type Output = i32;
+
 
 fn main() {
     let args = Args::parse();
 
     let now = Utc::now();
     let mut year = args.year.unwrap_or(now.year());
-    let day = args.day.unwrap_or(match (year.cmp(&now.year()), now.month()) {
+    let day = args.day.unwrap_or_else(|| match (year.cmp(&now.year()), now.month()) {
         (Ordering::Less, _) => 25,
         (Ordering::Greater, _) => 1,
         (Ordering::Equal, 12) => min(now.day(), 25),
@@ -46,9 +50,10 @@ fn main() {
     };
 
     match year {
-        2024 => match day {
-            _ => println!("Given day has no solutions")
-        },
+        2024 => match solutions::solve_day(day, input) {
+            Some(result) => println!("{}", result),
+            None => println!("Given year has no solutions")
+        }
         _ => println!("Given year has no solutions")
     };
 }
