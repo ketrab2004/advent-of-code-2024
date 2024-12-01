@@ -24,7 +24,7 @@ struct Args {
 }
 
 pub type Input = BufReader<Box<dyn Read>>;
-pub type Output = i32;
+pub type Output = (i32, i32);
 
 
 fn main() {
@@ -51,7 +51,7 @@ fn main() {
 
     match year {
         2024 => match solutions::solve_day(day, input) {
-            Some(result) => println!("{}", result),
+            Some((part1, part2)) => println!("part 1: {}\npart 2: {}", part1, part2),
             None => println!("Given year has no solutions")
         }
         _ => println!("Given year has no solutions")

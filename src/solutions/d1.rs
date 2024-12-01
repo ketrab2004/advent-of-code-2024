@@ -27,7 +27,5 @@ pub fn solve(input: Input) -> Output {
             .count() as i32;
     }
 
-    println!("part 2: {}", similarity_score);
-
-    sum
+    (sum, similarity_score)
 }
