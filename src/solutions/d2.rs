@@ -33,11 +33,11 @@ pub fn solve(input: Input) -> Output {
         let line = line.unwrap();
         total += 1;
 
-        let mut list = line
+        let list = line
             .split_ascii_whitespace()
             .map(|string| string.parse::<i32>().unwrap());
 
-        let mut list2 = list.clone();
+        let list2 = list.clone();
         let list_line = list.clone().collect::<Vec<i32>>();
 
         if !line_is_safe(list) {
