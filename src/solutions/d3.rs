@@ -13,8 +13,7 @@ pub fn solve(input: Input) -> Output {
         let line = line.unwrap();
 
         for hit in regex.captures_iter(&line) {
-            dbg!(&hit);
-            if hit[0].starts_with("mul") {
+            if hit[0].starts_with("mul(") {
                 let a = hit[1].parse::<i32>().unwrap();
                 let b = hit[2].parse::<i32>().unwrap();
                 let add = a * b;
@@ -23,10 +22,10 @@ pub fn solve(input: Input) -> Output {
                     more_precise_sum += add;
                 }
 
-            } else if hit[0].starts_with("don't") {
+            } else if hit[0].starts_with("don't(") {
                 enabled = false;
 
-            } else if hit[0].starts_with("do") {
+            } else if hit[0].starts_with("do(") {
                 enabled = true;
             }
         }
