@@ -10,6 +10,10 @@ pub struct Grid {
 
 #[allow(dead_code)]
 impl Grid {
+    /// Creates from iterator of lines,
+    /// using the width of the first line.
+    ///
+    /// Fails if not all lines have the same width.
     pub fn from(mut input: impl Iterator<Item = impl AsRef<str>>) -> Result<Self, ()> {
         let first = input.next().unwrap();
         let line: &str = first.as_ref();
@@ -31,6 +35,11 @@ impl Grid {
         Ok(grid)
     }
 
+    /// Creates from iterator of lines,
+    /// using the given width.
+    /// Padding with fill to reach it.
+    ///
+    /// Fails if any line is longer than the given width.
     pub fn with_width(input: impl Iterator<Item = impl AsRef<str>>, width: usize, fill: Option<char>) -> Result<Self, ()> {
         let mut grid = Grid {
             width,
@@ -54,6 +63,9 @@ impl Grid {
         Ok(grid)
     }
 
+    /// Creates from iterator of lines.
+    ///
+    /// Gets the width of the widest line and pads each line with the given fill to reach it.
     pub fn with_dynamic_width(input: impl Iterator<Item = impl AsRef<str>> + Clone, fill: Option<char>) -> Self {
         let mut width = 0;
         for line in input.clone() {
@@ -79,8 +91,22 @@ impl Grid {
         Some(unsafe { self.get_unchecked(x, y) })
     }
 
+    pub fn signed_get(&self, x: isize, y: isize) -> Option<u8> {
+        if x < 0 || x as usize >= self.width
+            || y < 0 || y as usize >= self.height  {
+                return None;
+        }
+        Some(unsafe { self.get_unchecked(x as usize, y as usize) })
+    }
+
+    /// Gets the value or '\0' if out of bounds.
     pub fn get_or_default(&self, x: usize, y: usize) -> u8 {
         self.get(x, y).unwrap_or(0)
+    }
+
+    /// Gets the value or '\0' if out of bounds.
+    pub fn signed_get_or_default(&self, x: isize, y: isize) -> u8 {
+        self.signed_get(x, y).unwrap_or(0)
     }
 
     fn index_to_xy(&self, index: usize) -> (usize, usize) {
@@ -89,6 +115,7 @@ impl Grid {
         (x, y)
     }
 
+    /// Gets a linear iterator over the grid, with coordinates included.
     pub fn iter(&self) -> GridIterator {
         GridIterator {
             grid: self,
