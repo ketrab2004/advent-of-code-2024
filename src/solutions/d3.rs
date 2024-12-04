@@ -4,18 +4,17 @@ use crate::{Input, Output};
 
 
 pub fn solve(input: Input) -> Output {
-    let regex = regex!(r"(?:mul\((\d{1,3}),(\d{1,3})\)|do\(\)|don't\(\))");
+    let regex = regex!(r"(?:mul\((\d{1,3}),(\d{1,3})\)|do(?:n't)?\(\))");
     let mut sum = 0;
     let mut enabled = true;
     let mut more_precise_sum = 0;
 
     for line in input.lines() {
-        let line = line.unwrap();
 
-        for hit in regex.captures_iter(&line) {
+        for hit in regex.captures_iter(&line?) {
             if hit[0].starts_with("mul(") {
-                let a = hit[1].parse::<i32>().unwrap();
-                let b = hit[2].parse::<i32>().unwrap();
+                let a = hit[1].parse::<i32>()?;
+                let b = hit[2].parse::<i32>()?;
                 let add = a * b;
                 sum += add;
                 if enabled {
@@ -31,5 +30,5 @@ pub fn solve(input: Input) -> Output {
         }
     }
 
-    (sum, more_precise_sum)
+    Ok((sum, more_precise_sum))
 }

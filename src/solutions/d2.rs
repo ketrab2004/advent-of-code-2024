@@ -1,6 +1,6 @@
 use std::io::BufRead;
-
 use crate::{Input, Output};
+
 
 fn is_safe(diff: i32, i: usize, prev_diff: i32) -> bool {
     !(diff.abs() < 1
@@ -30,26 +30,24 @@ pub fn solve(input: Input) -> Output {
     let mut total = 0;
 
     for line in input.lines() {
-        let line = line.unwrap();
         total += 1;
 
-        let list = line
+        let list = line?
             .split_ascii_whitespace()
-            .map(|string| string.parse::<i32>().unwrap());
+            .map(|string| string.parse::<i32>())
+            .collect::<Result<Vec<_>, _>>()?;
 
-        let list2 = list.clone();
-        let list_line = list.clone().collect::<Vec<i32>>();
-
-        if !line_is_safe(list) {
+        if !line_is_safe(list.iter().copied()) {
             unsafe_count += 1;
         } else {
             continue;
         }
 
-        if !list2
+        if !list
+            .iter()
             .enumerate()
             .any(|(i, _num)| {
-                let mut temp = list_line.clone();
+                let mut temp = list.clone();
                 temp.remove(i);
                 line_is_safe(temp.iter().map(|n| *n))
             }
@@ -58,5 +56,5 @@ pub fn solve(input: Input) -> Output {
         }
     }
 
-    (total - unsafe_count, total - skipped_unsafe_count)
+    Ok((total - unsafe_count, total - skipped_unsafe_count))
 }

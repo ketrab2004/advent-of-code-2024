@@ -1,6 +1,7 @@
 use std::{cmp::{min, Ordering}, fs::File, io::{self, BufReader, Read}, path::PathBuf};
 use clap::{crate_authors, crate_description, crate_version, Parser};
 use chrono::{Datelike, Utc};
+use color_eyre::eyre::Result;
 
 mod solutions;
 mod misc;
@@ -26,10 +27,11 @@ struct Args {
 }
 
 pub type Input = BufReader<Box<dyn Read>>;
-pub type Output = (i32, i32);
+pub type Output = Result<(i32, i32)>;
 
 
 fn main() {
+    color_eyre::install().expect("Failed to install color_eyre");
     let args = Args::parse();
 
     let now = Utc::now();
@@ -51,11 +53,14 @@ fn main() {
         None => BufReader::new(Box::new(io::stdin()))
     };
 
-    match year {
-        2024 => match solutions::solve_day(day, input) {
-            Some((part1, part2)) => println!("part 1: {}\npart 2: {}", part1, part2),
-            None => println!("Given year has no solutions")
-        }
-        _ => println!("Given year has no solutions")
+    let result = match year {
+        2024 => solutions::solve_day(day, input),
+        _ => None
     };
+
+    match result {
+        Some(Ok((part1, part2))) => println!("part 1: {}\npart 2: {}", part1, part2),
+        Some(Err(err)) => println!("Something went wrong, is the input valid?\n\nCaused by: {}\n\n{:?}", err, err),
+        None => println!("Given year has no solutions")
+    }
 }

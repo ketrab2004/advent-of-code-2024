@@ -1,16 +1,16 @@
 use std::io::BufRead;
 
-use crate::{Input, Output};
+use crate::{misc::option::OptionExt, Input, Output};
 
 pub fn solve(input: Input) -> Output {
     let mut list_a = Vec::<i32>::new();
     let mut list_b = Vec::<i32>::new();
 
     for line in input.lines() {
-        let line = line.unwrap();
-        let (a, b) = line.split_once("   ").unwrap();
-        list_a.push(a.parse().unwrap());
-        list_b.push(b.parse().unwrap());
+        let line = line?;
+        let (a, b) = line.split_once("   ").unwrap_or_err()?;
+        list_a.push(a.parse()?);
+        list_b.push(b.parse()?);
     }
 
     list_a.sort();
@@ -27,5 +27,5 @@ pub fn solve(input: Input) -> Output {
             .count() as i32;
     }
 
-    (sum, similarity_score)
+    Ok((sum, similarity_score))
 }

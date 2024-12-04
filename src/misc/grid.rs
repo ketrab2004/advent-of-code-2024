@@ -79,6 +79,10 @@ impl Grid {
         Some(unsafe { self.get_unchecked(x, y) })
     }
 
+    pub fn get_or_default(&self, x: usize, y: usize) -> u8 {
+        self.get(x, y).unwrap_or(0)
+    }
+
     fn index_to_xy(&self, index: usize) -> (usize, usize) {
         let x = index % self.width;
         let y = index / self.width;
