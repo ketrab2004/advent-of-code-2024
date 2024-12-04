@@ -1,7 +1,9 @@
 use std::{cmp::{min, Ordering}, fs::File, io::{self, BufReader, Read}, path::PathBuf};
 use clap::{crate_authors, crate_description, crate_version, Parser};
 use chrono::{Datelike, Utc};
+
 mod solutions;
+mod misc;
 
 
 #[derive(Parser, Debug)]
