@@ -1,0 +1,13 @@
+use std::io::BufRead;
+use crate::{Input, Output};
+
+pub fn solve(input: Input) -> Output {
+
+    for line in input.lines() {
+        let line = line?;
+
+
+    }
+
+    Ok((-1, -1))
+}
