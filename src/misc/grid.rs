@@ -109,6 +109,18 @@ impl Grid {
         self.signed_get(x, y).unwrap_or(0)
     }
 
+    pub unsafe fn set_unchecked(&mut self, x: usize, y: usize, value: u8) {
+        self.data.as_bytes_mut()[y * self.width + x] = value;
+    }
+
+    pub fn signed_set(&mut self, x: isize, y: isize, value: u8) {
+        if x < 0 || x as usize >= self.width
+            || y < 0 || y as usize >= self.height  {
+                return;
+        }
+        unsafe { self.set_unchecked(x as usize, y as usize, value); }
+    }
+
     fn index_to_xy(&self, index: usize) -> (usize, usize) {
         let x = index % self.width;
         let y = index / self.width;
@@ -139,13 +151,20 @@ impl Display for Grid {
     }
 }
 
+struct DebugGrid(String);
+impl Debug for DebugGrid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
 impl Debug for Grid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f
             .debug_struct("Grid")
             .field("width", &self.width)
             .field("height", &self.height)
-            .field("data", &self.to_string())
+            .field("data", &DebugGrid(self.to_string()))
             .finish()
     }
 }

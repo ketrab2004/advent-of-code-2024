@@ -58,7 +58,6 @@ pub fn solve(input: Input) -> Output {
 
 
         if has_incorrect_dependencies(&manual, &dependencies).is_none() {
-            dbg!(&manual);
             sum += manual.get(manual.len() / 2).unwrap_or_err()?;
             continue;
         }
