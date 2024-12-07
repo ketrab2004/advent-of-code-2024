@@ -74,7 +74,7 @@ pub fn solve(input: Input) -> Output {
 
     let progress = ProgressBar::new(count as u64);
     progress.set_style(
-        ProgressStyle::with_template("[{elapsed_precise}] {bar:64} {pos:>4}/{len:4} {msg}")?
+        ProgressStyle::with_template("[{elapsed_precise}] {bar:64} {pos:>4}/{len:4} {eta} {msg}")?
             .progress_chars("#<-")
     );
 
