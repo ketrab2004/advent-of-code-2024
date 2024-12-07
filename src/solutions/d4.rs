@@ -1,5 +1,5 @@
 use std::io::BufRead;
-use crate::{Input, Output, misc::grid::Grid};
+use crate::{misc::grid::Grid, output, Input, Output};
 
 
 const DIRECTIONS: [(isize, isize); 8] = [
@@ -64,5 +64,5 @@ pub fn solve(input: Input) -> Output {
         }
     }
 
-    Ok((count, mas_count))
+    output!(count, mas_count)
 }

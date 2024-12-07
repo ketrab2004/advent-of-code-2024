@@ -1,6 +1,6 @@
 use std::io::BufRead;
 use regex_macro::regex;
-use crate::{Input, Output};
+use crate::{output, Input, Output};
 
 
 pub fn solve(input: Input) -> Output {
@@ -30,5 +30,5 @@ pub fn solve(input: Input) -> Output {
         }
     }
 
-    Ok((sum, more_precise_sum))
+    output!(sum, more_precise_sum)
 }

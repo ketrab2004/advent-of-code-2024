@@ -1,10 +1,7 @@
-use std::{io::BufRead, result};
-use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
-use crate::{misc::option::OptionExt, Input, Output};
+use std::io::BufRead;
+use crate::{misc::option::OptionExt, output, Input, Output};
 
 
-#[derive(EnumIter)]
 pub enum Operator {
     Add,
     Mul,
@@ -21,10 +18,15 @@ fn get_remaining_results(current_total: i64, operands: &[i64], results: &mut Vec
 
     for operator in allowed_operators {
         match operator {
-            Operator::Add => get_remaining_results(current_total + next, remaining, results, allowed_operators),
-            Operator::Mul => get_remaining_results(current_total * next, remaining, results, allowed_operators),
-            Operator::Concat => get_remaining_results(current_total * 10i32.pow(next.ilog10() as u32 + 1) as i64 + next, remaining, results, allowed_operators),
-            _ => unreachable!()
+            Operator::Add => get_remaining_results(
+                current_total + next,
+                remaining, results, allowed_operators),
+            Operator::Mul => get_remaining_results(
+                current_total * next,
+                remaining, results, allowed_operators),
+            Operator::Concat => get_remaining_results(
+                current_total * 10i32.pow(next.ilog10() as u32 + 1) as i64 + next,
+                remaining, results, allowed_operators)
         }
     }
 }
@@ -36,7 +38,7 @@ fn get_possible_results(operands: &[i64], allowed_operators: &[Operator]) -> Vec
     let remaining = &operands[1..];
     get_remaining_results(*start, remaining, &mut results, allowed_operators);
 
-    return results
+    results
 }
 
 pub fn solve(input: Input) -> Output {
@@ -64,6 +66,5 @@ pub fn solve(input: Input) -> Output {
         }
     }
 
-    dbg!(sum, sum_with_concat);
-    Ok((sum as i32, sum_with_concat as i32))
+    output!(sum, sum_with_concat)
 }

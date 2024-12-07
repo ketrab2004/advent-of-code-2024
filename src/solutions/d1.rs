@@ -1,6 +1,6 @@
 use std::io::BufRead;
 
-use crate::{misc::option::OptionExt, Input, Output};
+use crate::{misc::option::OptionExt, output, Input, Output};
 
 pub fn solve(input: Input) -> Output {
     let mut list_a = Vec::<i32>::new();
@@ -27,5 +27,5 @@ pub fn solve(input: Input) -> Output {
             .count() as i32;
     }
 
-    Ok((sum, similarity_score))
+    output!(sum, similarity_score)
 }

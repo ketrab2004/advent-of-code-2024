@@ -2,9 +2,24 @@ use std::{cmp::{min, Ordering}, fs::File, io::{self, BufReader, Read}, path::Pat
 use clap::{crate_authors, crate_description, crate_version, Parser};
 use chrono::{Datelike, Utc};
 use color_eyre::eyre::Result;
+use misc::number::Number;
 
 mod solutions;
 mod misc;
+
+
+pub type Input = BufReader<Box<dyn Read>>;
+pub type Output = Result<(Number, Number)>;
+#[macro_export]
+macro_rules! output {
+    ($part1:expr) => {
+        Ok((crate::misc::number::Number::from($part1), crate::misc::number::Number::from(-1i32)))
+    };
+    ($part1:expr, $part2:expr) => {
+        Ok((crate::misc::number::Number::from($part1), crate::misc::number::Number::from($part2)))
+    };
+}
+
 
 
 #[derive(Parser, Debug)]
@@ -26,8 +41,6 @@ struct Args {
     day: Option<u32>,
 }
 
-pub type Input = BufReader<Box<dyn Read>>;
-pub type Output = Result<(i32, i32)>;
 
 
 fn main() {

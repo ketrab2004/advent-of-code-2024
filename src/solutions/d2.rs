@@ -1,5 +1,5 @@
 use std::io::BufRead;
-use crate::{Input, Output};
+use crate::{output, Input, Output};
 
 
 fn is_safe(diff: i32, i: usize, prev_diff: i32) -> bool {
@@ -56,5 +56,5 @@ pub fn solve(input: Input) -> Output {
         }
     }
 
-    Ok((total - unsafe_count, total - skipped_unsafe_count))
+    output!(total - unsafe_count, total - skipped_unsafe_count)
 }

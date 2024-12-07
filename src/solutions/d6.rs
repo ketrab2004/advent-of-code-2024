@@ -1,7 +1,7 @@
 use std::{collections::HashMap, io::BufRead, ops::Rem};
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::{misc::{grid::Grid, option::OptionExt}, Input, Output};
+use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
 
 
 const DIRECTIONS: [(isize, isize); 4] = [
@@ -88,5 +88,5 @@ pub fn solve(input: Input) -> Output {
         progress.inc(1);
     }
 
-    Ok((count as i32, obstruction_count))
+    output!(count, obstruction_count)
 }

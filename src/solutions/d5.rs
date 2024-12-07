@@ -1,5 +1,5 @@
 use std::{collections::HashMap, io::BufRead};
-use crate::{misc::option::OptionExt, Input, Output};
+use crate::{misc::option::OptionExt, output, Input, Output};
 
 
 fn has_incorrect_dependencies(manual: impl AsRef<[i32]>, dependencies: &HashMap<i32, Vec<i32>>) -> Option<usize> {
@@ -71,5 +71,5 @@ pub fn solve(input: Input) -> Output {
         incorrect_sum += manual.get(manual.len() / 2).unwrap_or_err()?;
     }
 
-    Ok((sum, incorrect_sum))
+    output!(sum, incorrect_sum)
 }
