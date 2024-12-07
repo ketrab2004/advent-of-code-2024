@@ -1,5 +1,5 @@
 use std::io::BufRead;
-use crate::{Input, Output};
+use crate::{Input, Output, output};
 
 pub fn solve(input: Input) -> Output {
 
@@ -9,5 +9,5 @@ pub fn solve(input: Input) -> Output {
 
     }
 
-    Ok((-1, -1))
+    output!(-1)
 }
