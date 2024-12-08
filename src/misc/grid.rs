@@ -1,5 +1,7 @@
 use core::str;
 use std::fmt::{Debug, Display, Write};
+use color_eyre::eyre::Result;
+
 
 #[derive(Clone)]
 pub struct Grid {
@@ -109,25 +111,31 @@ impl Grid {
         self.signed_get(x, y).unwrap_or(0)
     }
 
+
     pub unsafe fn set_unchecked(&mut self, x: usize, y: usize, value: u8) {
         self.data.as_bytes_mut()[y * self.width + x] = value;
     }
 
-    pub fn set(&mut self, x: usize, y: usize, value: u8) {
+    /// Returns whether the value was set.
+    pub fn set(&mut self, x: usize, y: usize, value: u8) -> bool {
         if x >= self.width
             || y >= self.height  {
-                return;
+                return false;
         }
         unsafe { self.set_unchecked(x, y, value); }
+        true
     }
 
-    pub fn signed_set(&mut self, x: isize, y: isize, value: u8) {
+    /// Returns whether the value was set.
+    pub fn signed_set(&mut self, x: isize, y: isize, value: u8) -> bool {
         if x < 0 || x as usize >= self.width
             || y < 0 || y as usize >= self.height  {
-                return;
+                return false;
         }
         unsafe { self.set_unchecked(x as usize, y as usize, value); }
+        true
     }
+
 
     fn index_to_xy(&self, index: usize) -> (usize, usize) {
         let x = index % self.width;
@@ -135,9 +143,21 @@ impl Grid {
         (x, y)
     }
 
+    fn index_to_xy_signed(&self, index: usize) -> (isize, isize) {
+        let (x, y) = self.index_to_xy(index);
+        (x as isize, y as isize)
+    }
+
     /// Gets a linear iterator over the grid, with coordinates included.
     pub fn iter(&self) -> GridIterator {
         GridIterator {
+            grid: self,
+            index: 0
+        }
+    }
+
+    pub fn iter_signed(&self) -> GridIteratorSigned {
+        GridIteratorSigned {
             grid: self,
             index: 0
         }
@@ -196,5 +216,26 @@ impl Iterator for GridIterator<'_> {
         self.index += 1;
 
         Some((x, y, self.grid.get(x, y).unwrap()))
+    }
+}
+
+#[derive(Clone)]
+pub struct GridIteratorSigned<'a> {
+    grid: &'a Grid,
+    index: usize
+}
+
+impl Iterator for GridIteratorSigned<'_> {
+    type Item = (isize, isize, u8);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.grid.width * self.grid.height {
+            return None;
+        }
+
+        let (x, y) = self.grid.index_to_xy_signed(self.index);
+        self.index += 1;
+
+        Some((x, y, self.grid.signed_get(x, y).unwrap()))
     }
 }

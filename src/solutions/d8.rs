@@ -1,13 +1,7 @@
-use std::{io::BufRead, iter::Filter};
+use std::io::BufRead;
 use itertools::Itertools;
-use crate::{misc::grid::{Grid, GridIterator}, output, Input, Output};
+use crate::{misc::grid::Grid, output, Input, Output};
 
-
-fn get_antennae(map: &Grid) -> impl Iterator<Item = (usize, usize, u8)> + '_ {
-    map
-        .iter()
-        .filter(|(_, _, value)| value.is_ascii_alphanumeric())
-}
 
 pub fn solve(input: Input) -> Output {
     let original_map = Grid::from(input
@@ -15,18 +9,20 @@ pub fn solve(input: Input) -> Output {
         .map(|line| line.unwrap())
     ).unwrap();
 
+    let antennae = original_map
+        .iter_signed()
+        .filter(|(_, _, value)| value.is_ascii_alphanumeric());
+
     let mut anti_nodes = original_map.clone();
     let mut real_anti_nodes = original_map.clone();
 
-    for (_, _, antenna_type) in get_antennae(&original_map).unique_by(|(_, _, value)| *value) {
-        let filtered_antennae = get_antennae(&original_map)
+    for (_, _, antenna_type) in antennae.clone().unique_by(|(_, _, value)| *value) {
+        let filtered_antennae = antennae.clone()
             .filter(|(_, _, value)| value == &antenna_type)
             .collect::<Vec<_>>();
 
         for (i, (x, y, _)) in filtered_antennae.iter().enumerate() {
-            let (x, y) = (*x as isize, *y as isize);
             for (x2, y2, _) in filtered_antennae.iter().skip(i + 1) {
-                let (x2, y2) = (*x2 as isize, *y2 as isize);
                 let (dx, dy) = (x2 - x, y2 - y);
 
                 anti_nodes.signed_set(x - dx, y - dy, b'#');
@@ -34,13 +30,11 @@ pub fn solve(input: Input) -> Output {
 
 
                 let mut i = 0;
-                while real_anti_nodes.signed_get(x - dx*i, y - dy*i).is_some() {
-                    real_anti_nodes.signed_set(x - dx*i, y - dy*i, b'#');
+                while real_anti_nodes.signed_set(x - dx*i, y - dy*i, b'#') {
                     i += 1;
                 }
                 i = 0;
-                while real_anti_nodes.signed_get(x2 + dx*i, y2 + dy*i).is_some() {
-                    real_anti_nodes.signed_set(x2 + dx*i, y2 + dy*i, b'#');
+                while real_anti_nodes.signed_set(x2 + dx*i, y2 + dy*i, b'#') {
                     i += 1;
                 }
             }
