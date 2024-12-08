@@ -113,6 +113,14 @@ impl Grid {
         self.data.as_bytes_mut()[y * self.width + x] = value;
     }
 
+    pub fn set(&mut self, x: usize, y: usize, value: u8) {
+        if x >= self.width
+            || y >= self.height  {
+                return;
+        }
+        unsafe { self.set_unchecked(x, y, value); }
+    }
+
     pub fn signed_set(&mut self, x: isize, y: isize, value: u8) {
         if x < 0 || x as usize >= self.width
             || y < 0 || y as usize >= self.height  {
@@ -170,6 +178,7 @@ impl Debug for Grid {
 }
 
 
+#[derive(Clone)]
 pub struct GridIterator<'a> {
     grid: &'a Grid,
     index: usize
