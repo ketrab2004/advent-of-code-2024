@@ -1,5 +1,5 @@
 use core::str;
-use std::fmt::{Debug, Display, Write};
+use std::fmt::{Debug, Display};
 use color_eyre::eyre::Result;
 
 
@@ -24,6 +24,7 @@ impl Grid {
             height: 1,
             data: String::from(line)
         };
+        grid.data.push('\n');
 
         for line in input {
             let line = line.as_ref();
@@ -31,7 +32,10 @@ impl Grid {
                 return Err(());
             }
             grid.height += 1;
+
+            grid.data.reserve(grid.width + 1);
             grid.data.push_str(line);
+            grid.data.push('\n');
         }
 
         Ok(grid)
@@ -49,17 +53,19 @@ impl Grid {
             data: String::with_capacity(width)
         };
 
+        let fill = fill.unwrap_or(' ');
         for line in input {
             let line = line.as_ref();
             if line.len() > width {
                 return Err(());
             }
 
-            grid.data.reserve(width);
+            grid.data.reserve(width + 1);
             grid.data.push_str(line);
             for _ in 0..(width - line.len()) {
-                grid.data.push(fill.unwrap_or(' '));
+                grid.data.push(fill);
             }
+            grid.data.push('\n');
         }
 
         Ok(grid)
@@ -83,7 +89,7 @@ impl Grid {
 
 
     pub unsafe fn get_unchecked(&self, x: usize, y: usize) -> u8 {
-        self.data.as_bytes()[y * self.width + x]
+        self.data.as_bytes()[y * (self.width + 1)+ x]
     }
 
     pub fn get(&self, x: usize, y: usize) -> Option<u8> {
@@ -113,7 +119,7 @@ impl Grid {
 
 
     pub unsafe fn set_unchecked(&mut self, x: usize, y: usize, value: u8) {
-        self.data.as_bytes_mut()[y * self.width + x] = value;
+        self.data.as_bytes_mut()[y * (self.width + 1) + x] = value;
     }
 
     /// Returns whether the value was set.
@@ -156,6 +162,7 @@ impl Grid {
         }
     }
 
+    /// Gets a linear iterator over the grid, with (signed) coordinates included.
     pub fn iter_signed(&self) -> GridIteratorSigned {
         GridIteratorSigned {
             grid: self,
@@ -166,23 +173,16 @@ impl Grid {
 
 impl Display for Grid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for line in 0..self.height {
-            let i = line * self.width;
-
-            f.write_str(unsafe {
-                str::from_utf8_unchecked(&self.data.as_bytes()[i..i + self.width])
-            })?;
-            f.write_char('\n')?;
-        }
-
-        Ok(())
+        f.write_str(self.data.as_str())
     }
 }
 
 struct DebugGrid(String);
 impl Debug for DebugGrid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
+        f.write_str("\"\"\"\n")?;
+        f.write_str(&self.0)?;
+        f.write_str("\"\"\"")
     }
 }
 
