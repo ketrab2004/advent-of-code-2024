@@ -28,7 +28,7 @@ macro_rules! impl_from {
                     Number::$name(n)
                 }
             }
-        )*
+        )+
     };
 }
 
@@ -47,20 +47,20 @@ impl_from!(
 impl Display for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Number::I8(n) => n.fmt(f),
-            Number::U8(n) => n.fmt(f),
-            Number::I16(n) => n.fmt(f),
-            Number::U16(n) => n.fmt(f),
-            Number::I32(n) => n.fmt(f),
-            Number::U32(n) => n.fmt(f),
-            Number::I64(n) => n.fmt(f),
-            Number::U64(n) => n.fmt(f),
-            Number::ISize(n) => n.fmt(f),
-            Number::USize(n) => n.fmt(f),
-            Number::I128(n) => n.fmt(f),
-            Number::U128(n) => n.fmt(f),
-            Number::F32(n) => n.fmt(f),
-            Number::F64(n) => n.fmt(f)
+            Self::I8(n) => n.fmt(f),
+            Self::U8(n) => n.fmt(f),
+            Self::I16(n) => n.fmt(f),
+            Self::U16(n) => n.fmt(f),
+            Self::I32(n) => n.fmt(f),
+            Self::U32(n) => n.fmt(f),
+            Self::I64(n) => n.fmt(f),
+            Self::U64(n) => n.fmt(f),
+            Self::ISize(n) => n.fmt(f),
+            Self::USize(n) => n.fmt(f),
+            Self::I128(n) => n.fmt(f),
+            Self::U128(n) => n.fmt(f),
+            Self::F32(n) => n.fmt(f),
+            Self::F64(n) => n.fmt(f)
         }
     }
 }
