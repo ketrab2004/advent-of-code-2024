@@ -1,20 +1,8 @@
 use std::io::BufRead;
-use itertools::Itertools;
-
 use crate::{misc::option::OptionExt, output, Input, Output};
 
-fn print_blocks(blocks: &Vec<Option<usize>>) {
-    print!("[");
-    for block in blocks {
-        print!("{}", match block {
-            Some(id) => id.to_string(),
-            None => ".".into()
-        })
-    }
-    println!("]");
-}
 
-fn defragment_1(blocks: &mut Vec<Option<usize>>) -> usize {
+fn shrink_1(blocks: &mut Vec<Option<u32>>) -> usize {
     loop {
         let Some(hole_index) = blocks.iter().position(|block| block.is_none()) else {
             break;
@@ -25,94 +13,88 @@ fn defragment_1(blocks: &mut Vec<Option<usize>>) -> usize {
         blocks[hole_index] = moved;
     }
 
-    let mut checksum = 0usize;
+    let mut checksum = 0;
     for (i, id) in blocks.iter().enumerate() {
         if let Some(id) = id {
-            checksum += id * i;
+            checksum += i * (*id as usize);
         }
     }
     checksum
 }
 
-fn defragment_2(blocks: &mut Vec<Option<usize>>) -> usize {
-    let mut last_hole_index = 0;
-    for _ in 0..10 {
+
+#[derive(Debug, Clone, Copy)]
+struct Block {
+    id: Option<u32>,
+    size: u32
+}
+
+fn shrink_2(blocks: &mut Vec<Block>) -> usize {
+    let mut last_moved_offset = 0;
+    loop {
+        let mut i = 0;
+        while i < blocks.len() {
+            let block = blocks[i];
+            while blocks.get(i + 1).is_some() && blocks[i + 1].id == block.id {
+                blocks[i].size += blocks[i + 1].size;
+                blocks.remove(i + 1);
+            }
+            i += 1;
+        }
+
+        let Some((to_move_index, to_move)) = blocks
+            .iter()
+            .enumerate()
+            .rev()
+            .skip(last_moved_offset)
+            .find(|(_, block)| block.id.is_some()) else {
+            break;
+        };
+        let to_move = *to_move;
+
         let Some(hole_index) = blocks
             .iter()
-            .skip(last_hole_index)
-            .position(|block| block.is_none()) else {
-            break;
+            .position(|block| block.id.is_none() && block.size >= to_move.size) else {
+            last_moved_offset = blocks.len() - to_move_index;
+            continue;
         };
-        let mut hole_size = 0;
-        for block in blocks.iter().skip(hole_index) {
-            if let Some(_block) = block {
-                break;
-            };
-            hole_size += 1;
+        if hole_index > to_move_index {
+            last_moved_offset = blocks.len() - to_move_index;
+            continue;
         }
+        let hole = blocks[hole_index];
 
-        let Some(mut moved) = blocks.iter().enumerate().rev().find(|n| n.is_some()) else {
-            break;
-        };
-        let mut moved_size = 0;
-        let mut moved_index = 0;
-
-        for id in available_ids.iter() {
-            let index = blocks.iter().position(|block| *block == Some(*id));
-            let Some(index) = index else {
-                continue;
-            };
-            dbg!(index, hole_index);
-            if index <= hole_index {
-                continue;
-            }
-
-            moved_size = 0;
-            for item in blocks.iter().skip(index) {
-                let Some(item) = item else {
-                    break;
-                };
-                if item != id {
-                    break;
-                }
-                moved_size += 1;
-            }
-
-            if moved_size <= hole_size {
-                moved = *id;
-                moved_index = index;
-                break;
-            }
+        blocks[to_move_index].id = None;
+        blocks[hole_index].size -= to_move.size;
+        if hole.size == 0 {
+            blocks[hole_index] = to_move;
+        } else {
+            blocks.insert(hole_index, to_move);
         }
-
-        println!("moving #{moved} {moved_size}x to #{hole_index} {hole_size}x");
-        print_blocks(&blocks);
-        for i in 0..moved_size {
-            blocks[hole_index + i] = Some(moved);
-            blocks[moved_index + i] = None;
-        }
-        print_blocks(&blocks);
-        println!();
-        last_hole_index = hole_index;
     }
 
-    let mut checksum = 0usize;
-    for (i, id) in blocks.iter().enumerate() {
-        if let Some(id) = id {
-            checksum += id * i;
+    let mut checksum = 0;
+    let mut i = 0;
+    for block in blocks.iter() {
+        if let Some(id) = block.id {
+            for j in 0..block.size as usize {
+                checksum += (i + j) * (id as usize);
+            }
         }
+        i += block.size as usize;
     }
-    dbg!(blocks, checksum);
     checksum
 }
 
+
 pub fn solve(input: Input) -> Output {
-    let mut total = 0i64;
-    let mut unfragmented_total = 0i64;
+    let mut total = 0;
+    let mut unfragmented_total = 0;
 
     for line in input.lines() {
         let line = line?;
 
+        let mut fragmented_blocks = Vec::new();
         let mut blocks = Vec::new();
 
         let mut id = 0;
@@ -120,21 +102,30 @@ pub fn solve(input: Input) -> Output {
             let size = c.to_digit(10).unwrap_or_err()?;
             if i % 2 == 0 {
                 for _ in 0..size {
-                    blocks.push(Some(id));
+                    fragmented_blocks.push(Some(id));
                 }
+                blocks.push(Block {
+                    id: Some(id),
+                    size
+                });
                 id += 1;
+
             } else {
                 for _ in 0..size {
-                    blocks.push(None);
+                    fragmented_blocks.push(None);
                 }
+                blocks.push(Block {
+                    id: None,
+                    size
+                });
             }
         }
 
-        let unfragmented_checksum = defragment_2(&mut blocks.clone());
-        let checksum = defragment_1(&mut blocks);
+        let checksum = shrink_1(&mut fragmented_blocks);
+        let unfragmented_checksum = shrink_2(&mut blocks);
 
-        total += checksum as i64;
-        unfragmented_total += unfragmented_checksum as i64;
+        total += checksum as usize;
+        unfragmented_total += unfragmented_checksum as usize;
     }
 
     output!(total, unfragmented_total)
