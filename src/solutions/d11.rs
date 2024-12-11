@@ -1,52 +1,84 @@
-use std::io::BufRead;
+use std::{collections::HashMap, io::BufRead};
+use color_eyre::eyre::Result;
 use indicatif::ProgressBar;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-
 use crate::{misc::option::OptionExt, output, Input, Output};
 
 
+fn count_stones(input: &[i64], depth: u64, previous_steps: &Vec<i64>, cache: &mut HashMap<i64, HashMap<u64, usize>>) -> Result<usize> {
+    let mut sum = 0;
+
+    for stone in input {
+        {
+            let stone_cache = cache.entry(*stone).or_insert(HashMap::new());
+            if let Some(cached) = stone_cache.get(&depth) {
+                sum += cached;
+                continue;
+            }
+        }
+
+        let mut next_steps = previous_steps.clone();
+        next_steps.push(*stone);
+
+        let num_length = stone.checked_ilog10().unwrap_or(0) + 1;
+        let step_input = if *stone == 0 {
+            vec![1]
+
+        } else if num_length % 2 == 0 {
+            let upper = stone / 10_i64.pow(num_length / 2);
+            let lower = stone - upper * 10_i64.pow(num_length / 2);
+            vec![upper, lower]
+
+        } else {
+            vec![stone * 2024]
+        };
+
+        let count = if depth <= 1 {
+            step_input.len()
+        } else {
+            count_stones(step_input.as_slice(), depth - 1, &next_steps, cache)?
+        };
+        sum += count;
+        let stone_cache = cache.get_mut(stone).unwrap_or_err()?;
+        stone_cache.insert(depth, count);
+    }
+
+    Ok(sum)
+}
+
 pub fn solve(input: Input) -> Output {
-    let line = input
+    let input = input
         .lines()
         .next()
         .unwrap_or_err()??;
-    let mut nums = line
+    let input = input
         .split_ascii_whitespace()
         .map(|item| item.parse());
 
-    let mut stones = nums.clone().collect::<Result<Vec<i64>,_>>()?;
+    let stones = input.clone().collect::<Result<Vec<i64>,_>>()?;
 
     let steps = 25;
     let progress = ProgressBar::new(steps);
-    for step in 1..=steps {
-        let mut i = 0;
-        while i < stones.len() {
-            let stone = stones[i];
-            let num_length = stone.checked_ilog10().unwrap_or(0) + 1;
+    let mut cache = HashMap::new();
+    let previous_steps = vec![];
 
-            if stone == 0 {
-                stones[i] = 1;
-
-            } else if num_length % 2 == 0 {
-                let upper = stone / 10_i64.pow(num_length / 2);
-                let lower = stone - upper * 10_i64.pow(num_length / 2);
-                // dbg!(stone, i, &num_length, &upper, &lower);
-
-                stones[i] = lower;
-                stones.insert(i, upper);
-                i += 1;
-
-            } else {
-                stones[i] *= 2024;
-            }
-            i += 1;
-        }
-
+    let mut stone_count = 0;
+    for stone in &stones {
+        let stones = [*stone];
+        stone_count += count_stones(stones.as_slice(), steps, &previous_steps, &mut cache)?;
         progress.inc(1);
-        // println!("{step}. {:?}", &stones);
     }
 
 
+    let steps = 75;
+    progress.reset();
+    progress.set_length(steps);
 
-    output!(stones.len())
+    let mut stone_count2 = 0;
+    for stone in stones {
+        let stones = [stone];
+        stone_count2 += count_stones(stones.as_slice(), steps, &previous_steps, &mut cache)?;
+        progress.inc(1);
+    }
+
+    output!(stone_count, stone_count2)
 }
