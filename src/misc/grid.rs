@@ -87,6 +87,23 @@ impl Grid {
             .expect("Width of input changed after first iteration")
     }
 
+    pub fn from_size(width: usize, height: usize, fill: u8) -> Self {
+        let mut line = String::from(char::from(fill));
+        line = line.repeat(width);
+        line.push('\n');
+
+        let mut data = String::with_capacity((width + 1) * height);
+        for _ in 0..height {
+            data.push_str(&line);
+        }
+
+        Self {
+            width,
+            height,
+            data
+        }
+    }
+
 
     pub unsafe fn get_unchecked(&self, x: usize, y: usize) -> u8 {
         self.data.as_bytes()[y * (self.width + 1)+ x]
