@@ -1,6 +1,7 @@
 use core::str;
-use std::fmt::{Debug, Display};
+use std::{error::Error, fmt::{Debug, Display}};
 use color_eyre::eyre::Result;
+use super::option::OptionExt;
 
 
 #[derive(Clone)]
@@ -9,6 +10,18 @@ pub struct Grid {
     height: usize,
     data: String
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum GridError {
+    InvalidWidth
+}
+impl Error for GridError {}
+impl Display for GridError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("grid error")
+    }
+}
+
 
 #[allow(dead_code)]
 impl Grid {
@@ -39,6 +52,24 @@ impl Grid {
         }
 
         Ok(grid)
+    }
+
+    pub fn from_string(input: String) -> Result<Self> {
+        let mut lines = input.lines();
+        let width  = lines.next().unwrap_or_err()?.len();
+        let mut height = 1;
+        for line in lines {
+            if line.len() != width {
+                return Err(GridError::InvalidWidth.into());
+            }
+            height += 1;
+        }
+
+        Ok(Grid {
+            width,
+            height,
+            data: input
+        })
     }
 
     /// Creates from iterator of lines,
@@ -194,8 +225,8 @@ impl Display for Grid {
     }
 }
 
-struct DebugGrid(String);
-impl Debug for DebugGrid {
+struct DebugGrid<'a>(&'a str);
+impl<'a> Debug for DebugGrid<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("\"\"\"\n")?;
         f.write_str(&self.0)?;
@@ -209,7 +240,7 @@ impl Debug for Grid {
             .debug_struct("Grid")
             .field("width", &self.width)
             .field("height", &self.height)
-            .field("data", &DebugGrid(self.to_string()))
+            .field("data", &DebugGrid(&self.data))
             .finish()
     }
 }

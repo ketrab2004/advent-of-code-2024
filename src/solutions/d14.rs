@@ -24,6 +24,7 @@ fn check_christmas_tree(robots: &[Robot], width: isize, height: isize) -> bool {
         let current = map.signed_get_or_default(x, y);
         map.signed_set(x, y, (current - b'0' + 1).to_string().as_bytes()[0]);
     }
+
     let min_height = 3;
     for robot in robots {
         let (x, y) = robot.pos;
@@ -49,7 +50,7 @@ fn check_christmas_tree(robots: &[Robot], width: isize, height: isize) -> bool {
 
 
 pub fn solve(input: Input) -> Output {
-    let mut robot_per_quadrant = [[0; 2]; 2];
+    let mut robots_per_quadrant = [[0; 2]; 2];
 
     let (width, height) = (101, 103);
     let (middle_x, middle_y) = (width / 2, height / 2);
@@ -79,7 +80,7 @@ pub fn solve(input: Input) -> Output {
             else if y > middle_y { 1 }
             else { continue; };
 
-        robot_per_quadrant[quadrant_x][quadrant_y] += 1;
+        robots_per_quadrant[quadrant_x][quadrant_y] += 1;
     }
 
     let mut i = 0;
@@ -106,7 +107,7 @@ pub fn solve(input: Input) -> Output {
         i += 1;
     }
 
-    println!("{:?}\n{:?}", robot_per_quadrant[0], robot_per_quadrant[1]);
-    let result = robot_per_quadrant[0][0] * robot_per_quadrant[0][1] * robot_per_quadrant[1][0] * robot_per_quadrant[1][1];
+    println!("{:?}\n{:?}", robots_per_quadrant[0], robots_per_quadrant[1]);
+    let result = robots_per_quadrant[0][0] * robots_per_quadrant[0][1] * robots_per_quadrant[1][0] * robots_per_quadrant[1][1];
     output!(result, i)
 }
