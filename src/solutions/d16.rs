@@ -68,17 +68,16 @@ pub fn solve(input: Input) -> Output {
         dirs: [0, usize::MAX, usize::MAX, usize::MAX]
     });
 
-    let mut score = usize::MAX;
     while let Some((current, _)) = queue.pop() {
         if current.pos == (end.0, end.1) {
-            score = current.score;
             break;
         }
         let mut origin_step = *origins.get(&current.pos).unwrap_or_err()?;
 
         for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
             let (nx, ny) = (current.pos.0 + dx, current.pos.1 + dy);
-            if map.signed_get_or_default(nx, ny) == b'#' {
+            let cell = map.signed_get_or_default(nx, ny);
+            if cell == b'#' || cell == b'\0' {
                 continue;
             }
 
@@ -105,21 +104,26 @@ pub fn solve(input: Input) -> Output {
 
         origins.insert(current.pos, origin_step);
     }
-    // let score = *origins
-    //     .get(&(end.0, end.1))
-    //     .unwrap_or_err()?
-    //     .dirs
-    //     .iter()
-    //     .min()
-    //     .unwrap_or_err()?;
+    let end_origins = *origins
+        .get(&(end.0, end.1))
+        .unwrap_or_err()?;
+    let score = *end_origins
+        .dirs
+        .iter()
+        .min()
+        .unwrap_or_err()?;
     dbg!(&map);
 
 
     let mut path = HashSet::new();
     let mut queue = VecDeque::new();
-    queue.push_back((end.0, end.1, score));
+    for (dir, dir_score) in end_origins.dirs.iter().enumerate() {
+        if score == *dir_score {
+            queue.push_back((end.0, end.1, score, dir));
+        }
+    }
 
-    while let Some((x, y, score)) = queue.pop_front() {
+    while let Some((x, y, score, current_dir)) = queue.pop_front() {
         if path.contains(&(x, y)) {
             continue;
         }
@@ -131,8 +135,11 @@ pub fn solve(input: Input) -> Output {
                 continue;
             };
 
-            if next.dirs[dir] < score {
-                queue.push_back((nx, ny, next.dirs[dir]));
+            let mut rot = (dir as i32 - current_dir as i32).rem_euclid(DIRECTIONS.len() as i32) as usize;
+            rot = rot.min(DIRECTIONS.len() - rot);
+
+            if next.dirs[dir] == score.wrapping_sub(1 + 1000 * rot) {
+                queue.push_back((nx, ny, next.dirs[dir], dir));
             }
         }
     }
