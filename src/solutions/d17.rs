@@ -1,4 +1,4 @@
-use std::io::BufRead;
+use std::{collections::VecDeque, io::BufRead};
 use color_eyre::eyre::Result;
 use indicatif::{ProgressBar, ProgressStyle};
 use itertools::Itertools;
@@ -80,7 +80,6 @@ pub fn run(register_file: &mut [i64], program: &[u8], output: &mut Vec<u8>, expe
             }
         };
 
-        println!("{}, {}, {},", register_file[0], register_file[1], register_file[2]);
         match instruction.op {
             Opcode::ADV | Opcode::BDV | Opcode::CDV => {
                 let numerator = register_file[Register::A as usize];
@@ -152,7 +151,6 @@ pub fn solve(input: Input) -> Output {
 
         register_file[(matches[1].as_bytes()[0] as u8 - b'A') as usize] = matches[2].parse()?;
     }
-    dbg!(&register_file);
 
     let program_regex = regex!(r"Program: (\d[,\d]+)");
     let mut program = Vec::new();
@@ -193,33 +191,55 @@ pub fn solve(input: Input) -> Output {
         //     });
         // }
     }
-    dbg!(&program);
 
     let original_registers = register_file;
     let mut output = Vec::new();
     run(&mut register_file, program.as_slice(), &mut output,  None)?;
     println!("out = '{}'", output.iter().map(|d| d.to_string()).join(","));
 
-    let mut correct_a = -1;
-    let steps = 2i64.pow(48);
-    let progress = ProgressBar::new((steps - 8i64.pow(15)) as u64);
-    progress.set_style(
-        ProgressStyle::with_template("[{elapsed_precise}] {bar:64} {pos:>4}/{len:4} {eta} {msg}")?
-            .progress_chars("#<-")
-    );
-    for i in (8i64.pow(15)..steps).step_by(7) {
-        let mut registers = original_registers;
-        registers[Register::A as usize] = i;
 
-        output.clear();
-        run(&mut registers, program.as_slice(), &mut output, Some(program.as_slice()))?;
-        if output == program {
-            correct_a = i;
-            progress.finish_and_clear();
-            break;
+    // 2,4     BST A   B = A % 8 (A & 0b111)
+    // 1,1     BXL 1   B = B ^ 1
+    // 7,5     CDV B   C = C / 2**A (C >> A)
+    // 0,3     ADV 3   A = A / 2**A (A >> A)
+    // 4,7     BXC     B = B ^ C
+    // 1,6     BXL 6   B = B ^ 6(0b110)
+    // 5,5     OUT B   B % 8 (B & 0b111)
+    // 3,0     JNZ 0   if A != 0: goto 0
+
+    // B = (A & 0b111) ^ 0b0001
+    // C = C >> A (C is always 0?)
+    // A = A >> A
+    // B = B ^ C ^ 0b110
+    // print B & 0b111
+    // repeat until a = 0
+
+    let mut correct_a = -1;
+    let mut queue = VecDeque::new();
+    queue.push_back((program.len() - 1, 0));
+
+    'outer: while let Some((i, a)) = queue.pop_front() {
+        let a = a << 3;
+        let last_expected_outputs = &program[i..];
+
+        for d in 0..=7 {
+            let mut registers = original_registers;
+            let a = a + d;
+            registers[Register::A as usize] = a;
+
+            output.clear();
+            run(&mut registers, program.as_slice(), &mut output, Some(last_expected_outputs))?;
+
+            if output.as_slice() == last_expected_outputs {
+                if i == 0 {
+                    correct_a = a;
+                    break 'outer;
+                }
+
+                queue.push_back((i - 1, a));
+            }
         }
-        progress.inc(7);
     }
 
-    output!(123, correct_a)
+    output!(-1, correct_a)
 }
