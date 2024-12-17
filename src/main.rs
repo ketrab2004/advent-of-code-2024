@@ -2,21 +2,21 @@ use std::{cmp::{min, Ordering}, fs::File, io::{self, BufReader, Read}, path::Pat
 use clap::{crate_authors, crate_description, crate_version, Parser};
 use chrono::{Datelike, Utc};
 use color_eyre::eyre::Result;
-use misc::number::Number;
+use misc::output::OutputValue;
 
 mod solutions;
 mod misc;
 
 
 pub type Input = BufReader<Box<dyn Read>>;
-pub type Output = Result<(Number, Number)>;
+pub type Output = Result<(OutputValue, OutputValue)>;
 #[macro_export]
 macro_rules! output {
     ($part1:expr) => {
-        Ok((crate::misc::number::Number::from($part1), crate::misc::number::Number::from(-1i32)))
+        Ok((crate::misc::output::OutputValue::from($part1), crate::misc::output::OutputValue::from(-1i32)))
     };
     ($part1:expr, $part2:expr) => {
-        Ok((crate::misc::number::Number::from($part1), crate::misc::number::Number::from($part2)))
+        Ok((crate::misc::output::OutputValue::from($part1), crate::misc::output::OutputValue::from($part2)))
     };
 }
 

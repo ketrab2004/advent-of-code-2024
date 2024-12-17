@@ -1,8 +1,8 @@
 use std::fmt::{self, Display};
 
 
-#[derive(fmt::Debug, Clone, Copy)]
-pub enum Number {
+#[derive(fmt::Debug, Clone)]
+pub enum OutputValue {
     I8(i8),
     U8(u8),
     I16(i16),
@@ -16,23 +16,24 @@ pub enum Number {
     I128(i128),
     U128(u128),
     F32(f32),
-    F64(f64)
+    F64(f64),
+    String(String)
 }
 
 
 macro_rules! impl_from {
-    ($(($t:ty, $name:ident)),+ $(,)?) => {
+    ($obj:ident, $(($t:ty, $name:ident)),+ $(,)?) => {
         $(
-            impl From<$t> for Number {
+            impl From<$t> for $obj {
                 fn from(n: $t) -> Self {
-                    Number::$name(n)
+                    $obj::$name(n)
                 }
             }
         )+
     };
 }
 
-impl_from!(
+impl_from!(OutputValue,
     (i8, I8), (u8, U8),
     (i16, I16), (u16, U16),
     (i32, I32), (u32, U32),
@@ -40,11 +41,17 @@ impl_from!(
     (isize, ISize), (usize, USize),
     (i128, I128), (u128, U128),
     (f32, F32),
-    (f64, F64)
+    (f64, F64),
+    (String, String)
 );
+impl From<&str> for OutputValue {
+    fn from(n: &str) -> Self {
+        Self::String(n.to_string())
+    }
+}
 
 
-impl Display for Number {
+impl Display for OutputValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::I8(n) => n.fmt(f),
@@ -60,7 +67,8 @@ impl Display for Number {
             Self::I128(n) => n.fmt(f),
             Self::U128(n) => n.fmt(f),
             Self::F32(n) => n.fmt(f),
-            Self::F64(n) => n.fmt(f)
+            Self::F64(n) => n.fmt(f),
+            Self::String(n) => n.fmt(f)
         }
     }
 }
