@@ -1,9 +1,7 @@
 use std::{collections::VecDeque, io::BufRead};
 use color_eyre::eyre::Result;
-use indicatif::{ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use regex_macro::regex;
-
 use crate::{misc::option::OptionExt, output, Input, Output};
 
 
@@ -13,6 +11,21 @@ enum Opcode {
     BXL, BXC,
     BST, OUT,
     JNZ
+}
+impl Opcode {
+    fn from_number(op: u8) -> Self {
+        match op {
+            0 => Opcode::ADV,
+            1 => Opcode::BXL,
+            2 => Opcode::BST,
+            3 => Opcode::JNZ,
+            4 => Opcode::BXC,
+            5 => Opcode::OUT,
+            6 => Opcode::BDV,
+            7 => Opcode::CDV,
+            _ => unreachable!()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -26,8 +39,17 @@ enum Operand {
     Immediate(u8),
     Reserved
 }
-
 impl Operand {
+    fn from_number(operand: u8) -> Self {
+        match operand {
+            0..=3 => Operand::Immediate(operand),
+            4 => Operand::Register(Register::A),
+            5 => Operand::Register(Register::B),
+            6 => Operand::Register(Register::C),
+            7 => Operand::Reserved,
+            _ => unreachable!()
+        }
+    }
     fn to_number(&self, register_file: &[i64]) -> i64 {
         match self {
             Operand::Register(register) => register_file[*register as usize],
@@ -52,33 +74,10 @@ struct Instruction {
 }
 
 
-pub fn run(register_file: &mut [i64], program: &[u8], output: &mut Vec<u8>, expected: Option<&[u8]>) -> Result<()> {
+fn run(register_file: &mut [i64], program: &[Instruction], output: &mut Vec<u8>, expected: Option<&[u8]>) -> Result<bool> {
     let mut pc = 0;
-    while pc < program.len() - 1 {
-        // let instruction = &program[pc];
-        let op = program[pc];
-        let operand = program[pc + 1];
-        let instruction = Instruction {
-            op: match op {
-                0 => Opcode::ADV,
-                1 => Opcode::BXL,
-                2 => Opcode::BST,
-                3 => Opcode::JNZ,
-                4 => Opcode::BXC,
-                5 => Opcode::OUT,
-                6 => Opcode::BDV,
-                7 => Opcode::CDV,
-                _ => unreachable!()
-            },
-            operand: match operand {
-                0..=3 => Operand::Immediate(operand),
-                4 => Operand::Register(Register::A),
-                5 => Operand::Register(Register::B),
-                6 => Operand::Register(Register::C),
-                7 => Operand::Reserved,
-                _ => unreachable!()
-            }
-        };
+    while pc < program.len() {
+        let instruction = &program[pc];
 
         match instruction.op {
             Opcode::ADV | Opcode::BDV | Opcode::CDV => {
@@ -119,21 +118,21 @@ pub fn run(register_file: &mut [i64], program: &[u8], output: &mut Vec<u8>, expe
 
                 if instruction.op == Opcode::OUT && expected.is_some() {
                     if output[output_len_before..] != expected.unwrap()[output_len_before..output.len()] {
-                        return Ok(());
+                        return Ok(false);
                     }
                 }
             },
             Opcode::JNZ => {
                 if register_file[Register::A as usize] != 0 {
-                    pc = instruction.operand.to_literal() as usize;
+                    pc = (instruction.operand.to_literal() / 2) as usize;
                     continue;
                 }
             }
         }
-        pc += 2;
+        pc += 1;
     }
 
-    Ok(())
+    Ok(true)
 }
 
 pub fn solve(input: Input) -> Output {
@@ -154,48 +153,31 @@ pub fn solve(input: Input) -> Output {
 
     let program_regex = regex!(r"Program: (\d[,\d]+)");
     let mut program = Vec::new();
+    let mut raw_program = Vec::new();
     for line in input {
         let line = line?;
         let matches = &program_regex
             .captures(line.as_str())
             .unwrap_or_err()?;
 
-        for n in matches[1].split(',') {
-            program.push(n.parse::<u8>()?);
+        for mut chunk in &matches[1].split(",").chunks(2) {
+            let op = chunk.next().unwrap_or_err()?.parse::<u8>()?;
+            let operand = chunk.next().unwrap_or_err()?.parse::<u8>()?;
+
+            raw_program.push(op);
+            raw_program.push(operand);
+
+            program.push(Instruction {
+                op: Opcode::from_number(op),
+                operand: Operand::from_number(operand)
+            });
         }
-
-        // for mut chunk in &matches[1].split(",").chunks(2) {
-        //     let op = chunk.next().unwrap_or_err()?.parse::<u8>()?;
-        //     let operand = chunk.next().unwrap_or_err()?.parse::<u8>()?;
-
-        //     program.push(Instruction {
-        //         op: match op {
-        //             0 => Opcode::ADV,
-        //             1 => Opcode::BXL,
-        //             2 => Opcode::BST,
-        //             3 => Opcode::JNZ,
-        //             4 => Opcode::BXC,
-        //             5 => Opcode::OUT,
-        //             6 => Opcode::BDV,
-        //             7 => Opcode::CDV,
-        //             _ => unreachable!()
-        //         },
-        //         operand: match operand {
-        //             0..=3 => Operand::Immediate(operand),
-        //             4 => Operand::Register(Register::A),
-        //             5 => Operand::Register(Register::B),
-        //             6 => Operand::Register(Register::C),
-        //             7 => Operand::Reserved,
-        //             _ => unreachable!()
-        //         }
-        //     });
-        // }
     }
 
     let original_registers = register_file;
     let mut output = Vec::new();
     run(&mut register_file, program.as_slice(), &mut output,  None)?;
-    println!("out = '{}'", output.iter().map(|d| d.to_string()).join(","));
+    let output_text = output.iter().map(|d| d.to_string()).join(",");
 
 
     // 2,4     BST A   B = A % 8 (A & 0b111)
@@ -216,11 +198,11 @@ pub fn solve(input: Input) -> Output {
 
     let mut correct_a = -1;
     let mut queue = VecDeque::new();
-    queue.push_back((program.len() - 1, 0));
+    queue.push_back((raw_program.len() - 1, 0));
 
     'outer: while let Some((i, a)) = queue.pop_front() {
         let a = a << 3;
-        let last_expected_outputs = &program[i..];
+        let last_expected_outputs = &raw_program[i..];
 
         for d in 0..=7 {
             let mut registers = original_registers;
@@ -228,9 +210,9 @@ pub fn solve(input: Input) -> Output {
             registers[Register::A as usize] = a;
 
             output.clear();
-            run(&mut registers, program.as_slice(), &mut output, Some(last_expected_outputs))?;
+            let finished = run(&mut registers, program.as_slice(), &mut output, Some(last_expected_outputs))?;
 
-            if output.as_slice() == last_expected_outputs {
+            if finished {
                 if i == 0 {
                     correct_a = a;
                     break 'outer;
@@ -241,5 +223,5 @@ pub fn solve(input: Input) -> Output {
         }
     }
 
-    output!(-1, correct_a)
+    output!(output_text, correct_a)
 }
