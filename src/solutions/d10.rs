@@ -17,7 +17,7 @@ pub fn solve(input: Input) -> Output {
     let mut map = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
-    ).unwrap();
+    )?;
 
     let mut queue = VecDeque::new();
     let mut ends = HashMap::new();

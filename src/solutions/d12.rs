@@ -27,7 +27,7 @@ pub fn solve(input: Input) -> Output {
     let grid = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
-    ).unwrap();
+    )?;
 
 
     let mut used = HashSet::new();

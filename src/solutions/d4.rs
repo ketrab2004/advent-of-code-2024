@@ -17,7 +17,7 @@ pub fn solve(input: Input) -> Output {
     let grid = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
-    ).unwrap();
+    )?;
 
     let search = "XMAS".as_bytes();
     let mut count = 0;

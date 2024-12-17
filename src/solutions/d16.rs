@@ -45,7 +45,7 @@ pub fn solve(input: Input) -> Output {
     let mut map = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
-    ).unwrap();
+    )?;
 
     let start = map
         .iter_signed()

@@ -1,4 +1,4 @@
-use std::{io::BufRead, str};
+use std::io::BufRead;
 use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
 
 
@@ -81,8 +81,8 @@ pub fn solve(input: Input) -> Output {
         big_map.push('\n');
     }
 
-    let mut map = Grid::from_string(map).unwrap();
-    let mut big_map = Grid::from_string(big_map).unwrap();
+    let mut map = Grid::from_string(map)?;
+    let mut big_map = Grid::from_string(big_map)?;
 
     let (mut x, mut y, ..) = map
         .iter_signed()

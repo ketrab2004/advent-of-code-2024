@@ -57,7 +57,7 @@ pub fn solve(input: Input) -> Output {
     let original_map = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
-    ).unwrap();
+    )?;
     let (ux, uy, _) = original_map
         .iter()
         .find(|(_, _, value)| value == &b'^')

@@ -13,90 +13,125 @@ pub struct Grid {
 
 #[derive(Debug, Clone, Copy)]
 pub enum GridError {
-    InvalidWidth
+    DifferentWidth,
+    LargerWidth
 }
 impl Error for GridError {}
 impl Display for GridError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("grid error")
+        f.write_str(match self {
+            GridError::DifferentWidth => "Inserted line has different width than grid",
+            GridError::LargerWidth => "Inserted line is wider than grid"
+        })
     }
 }
 
 
 #[allow(dead_code)]
 impl Grid {
+    /// Adds a single line to the grid, should not contain newlines for proper formatting.
+    ///
+    /// Fails if the line has different width than the grid.
+    pub fn add_line(&mut self, line: impl AsRef<str>) -> Result<(), GridError> {
+        let line: &str = line.as_ref();
+        if line.len() != self.width {
+            return Err(GridError::DifferentWidth);
+        }
+
+        self.height += 1;
+        self.data.reserve(self.width + 1);
+        if self.height > 1 {
+            self.data.push('\n');
+        }
+        self.data.push_str(line);
+
+        Ok(())
+    }
+
     /// Creates from iterator of lines,
     /// using the width of the first line.
     ///
     /// Fails if not all lines have the same width.
-    pub fn from(mut input: impl Iterator<Item = impl AsRef<str>>) -> Result<Self, ()> {
+    pub fn from(mut input: impl Iterator<Item = impl AsRef<str>>) -> Result<Self, GridError> {
         let first = input.next().unwrap();
         let line: &str = first.as_ref();
-        let mut grid = Grid {
+        let mut grid = Self {
             width: line.len(),
-            height: 1,
-            data: String::from(line)
+            height: 0,
+            data: String::with_capacity(line.len() + 1)
         };
-        grid.data.push('\n');
 
+        grid.add_line(line)?;
         for line in input {
-            let line = line.as_ref();
-            if line.len() != grid.width {
-                return Err(());
-            }
-            grid.height += 1;
-
-            grid.data.reserve(grid.width + 1);
-            grid.data.push_str(line);
-            grid.data.push('\n');
+            grid.add_line(line)?;
         }
 
         Ok(grid)
     }
 
-    pub fn from_string(input: String) -> Result<Self> {
+    /// Create grid using the given string as body.
+    ///
+    /// Each line should be the same width,
+    /// ending newline is automatically removed.
+    pub fn from_string(mut input: String) -> Result<Self> {
         let mut lines = input.lines();
         let width  = lines.next().unwrap_or_err()?.len();
         let mut height = 1;
         for line in lines {
             if line.len() != width {
-                return Err(GridError::InvalidWidth.into());
+                return Err(GridError::DifferentWidth.into());
             }
             height += 1;
         }
+        if width > 0 && input.chars().last().unwrap() == '\n' {
+            input.pop();
+        }
 
-        Ok(Grid {
+        Ok(Self {
             width,
             height,
             data: input
         })
     }
 
+    /// Adds a line to the grid, should not contain newlines for proper formatting.
+    ///
+    /// Fails if the line is wider than the grid, otherwise is filled to width.
+    /// Spaces by default.
+    pub fn add_line_with_fill(&mut self, line: impl AsRef<str>, fill: Option<char>) -> Result<(), GridError> {
+        let line: &str = line.as_ref();
+        if line.len() > self.width {
+            return Err(GridError::LargerWidth);
+        }
+        let fill = fill.unwrap_or(' ');
+
+        self.height += 1;
+        self.data.reserve(self.width + 1);
+        if self.height > 1 {
+            self.data.push('\n');
+        }
+        self.data.push_str(line);
+        for _ in 0..(self.width - line.len()) {
+            self.data.push(fill);
+        }
+
+        Ok(())
+    }
+
     /// Creates from iterator of lines,
     /// using the given width.
-    /// Padding with fill to reach it.
+    /// Padding with fill to reach it, spaces by default.
     ///
     /// Fails if any line is longer than the given width.
-    pub fn with_width(input: impl Iterator<Item = impl AsRef<str>>, width: usize, fill: Option<char>) -> Result<Self, ()> {
-        let mut grid = Grid {
+    pub fn with_fill(input: impl Iterator<Item = impl AsRef<str>>, width: usize, fill: Option<char>) -> Result<Self, GridError> {
+        let mut grid = Self {
             width,
             height: 0,
             data: String::with_capacity(width)
         };
 
-        let fill = fill.unwrap_or(' ');
         for line in input {
-            let line = line.as_ref();
-            if line.len() > width {
-                return Err(());
-            }
-
-            grid.data.reserve(width + 1);
-            grid.data.push_str(line);
-            for _ in 0..(width - line.len()) {
-                grid.data.push(fill);
-            }
-            grid.data.push('\n');
+            grid.add_line_with_fill(line, fill)?;
         }
 
         Ok(grid)
@@ -114,25 +149,24 @@ impl Grid {
             }
         }
 
-        Self::with_width(input, width, fill)
+        Self::with_fill(input, width, fill)
             .expect("Width of input changed after first iteration")
     }
 
     pub fn from_size(width: usize, height: usize, fill: u8) -> Self {
+        let mut grid = Self {
+            width,
+            height: 0,
+            data: String::with_capacity((width + 1) * height - 1)
+        };
         let mut line = String::from(char::from(fill));
         line = line.repeat(width);
-        line.push('\n');
 
-        let mut data = String::with_capacity((width + 1) * height);
         for _ in 0..height {
-            data.push_str(&line);
+            grid.add_line(&line).expect("Repeated fill char str couldn't be added to grid");
         }
 
-        Self {
-            width,
-            height,
-            data
-        }
+        grid
     }
 
 
@@ -230,7 +264,7 @@ impl<'a> Debug for DebugGrid<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("\"\"\"\n")?;
         f.write_str(&self.0)?;
-        f.write_str("\"\"\"")
+        f.write_str("\n\"\"\"")
     }
 }
 
