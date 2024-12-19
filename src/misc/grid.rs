@@ -170,6 +170,11 @@ impl Grid {
     }
 
 
+    pub fn get_size(&self) -> (usize, usize) {
+        (self.width, self.height)
+    }
+
+
     pub unsafe fn get_unchecked(&self, x: usize, y: usize) -> u8 {
         self.data.as_bytes()[y * (self.width + 1)+ x]
     }
