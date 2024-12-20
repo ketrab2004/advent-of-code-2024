@@ -64,16 +64,16 @@ pub fn solve(input: Input) -> Output {
     let mut map = original_map.clone();
     let mut lengths = Vec::new();
 
-    let mut queue = PriorityQueue::new();
-    queue.push(PathState {
+    let mut queue = VecDeque::new();
+    queue.push_back(PathState {
         pos: (start.0, start.1),
         score: 0,
         origin_dir: None,
         cheat: 2,
         cheating: false
-    }, Reverse(0));
+    });
 
-    while let Some((current, _)) = queue.pop() {
+    while let Some(current) = queue.pop_front() {
         if current.pos == (end.0, end.1) {
             if current.score < uncheated_length {
                 lengths.push(current.score);
@@ -127,7 +127,78 @@ pub fn solve(input: Input) -> Output {
                 step
             };
 
-            queue.push(step, Reverse(step.score));
+            queue.push_back(step);
+            map.signed_set(nx, ny, if step.cheating { b'X' } else { b'*' });
+        }
+    }
+    dbg!(&map, uncheated_length);
+    println!("{:?}", &lengths.chunk_by(|a, b| a==b).map(|a| (uncheated_length - a[0], a.len())).collect::<Vec<_>>());
+    dbg!(&lengths.len());
+
+    let mut queue = VecDeque::new();
+    queue.push_back(PathState {
+        pos: (start.0, start.1),
+        score: 0,
+        origin_dir: None,
+        cheat: 20,
+        cheating: false
+    });
+
+    while let Some(current) = queue.pop_front() {
+        if current.pos == (end.0, end.1) {
+            if current.score < uncheated_length {
+                lengths.push(current.score);
+            }
+            continue;
+        }
+
+        if current.score >= uncheated_length {
+            continue;
+        }
+        for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
+            if let Some(origin_dir) = current.origin_dir {
+                if (dir + DIRECTIONS.len() / 2) % DIRECTIONS.len() == origin_dir {
+                    continue;
+                }
+            }
+            let (nx, ny) = (current.pos.0 + dx, current.pos.1 + dy);
+            let cell = original_map.signed_get_or_default(nx, ny);
+            if cell == b'\0' {
+                continue;
+            }
+
+            let step = {
+                let mut step = PathState {
+                    pos: (nx, ny),
+                    origin_dir: Some(dir),
+                    ..current
+                };
+                step.score += 1;
+
+                if current.cheating {
+                    if step.cheat == 0 {
+                        continue;
+                    }
+                    step.cheat -= 1;
+
+                    if cell != b'#' {
+                        step.cheating = false;
+                    } else if step.cheat == 0 {
+                        continue;
+                    }
+                } else {
+                    if cell == b'#' {
+                        if step.cheat < 2 {
+                            continue;
+                        }
+                        step.cheating = true;
+                        step.cheat -= 1;
+                    }
+                }
+                step
+            };
+
+            queue.push_back(step);
             map.signed_set(nx, ny, if step.cheating { b'X' } else { b'*' });
         }
     }
