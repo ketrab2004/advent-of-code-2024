@@ -1,6 +1,4 @@
-use std::{cmp::Reverse, collections::{HashMap, VecDeque}, io::BufRead, isize, usize};
-use priority_queue::PriorityQueue;
-
+use std::{collections::{HashMap, HashSet, VecDeque}, io::BufRead, isize, usize};
 use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
 
 
@@ -14,110 +12,75 @@ const DIRECTIONS: [(isize, isize); 4] = [
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct PathState {
     pub pos: (isize, isize),
-    pub score: isize,
-    pub origin_dir: Option<usize>,
-    pub cheat_steps: u8,
-    pub cheat: Option<Cheat>
+    pub score: isize
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-enum Cheat {
-    Started((isize, isize)),
-    Finished((isize, isize), (isize, isize))
-}
 
 fn count_cheats(
     original_map: &Grid,
     start: (isize, isize),
-    allowed_cheat_steps: u8,
+    allowed_cheat_steps: usize,
     route_to_end_cache: &HashMap<(isize, isize), usize>,
     uncheated_length: isize
 ) -> Vec<isize> {
+    let allowed_cheat_steps = allowed_cheat_steps as isize;
     let mut map = original_map.clone();
-    let mut cheats = HashMap::new();
+    let mut visited = HashSet::new();
+    let mut cheats = Vec::new();
 
     let mut queue = VecDeque::new();
     queue.push_back(PathState {
         pos: (start.0, start.1),
-        score: 0,
-        origin_dir: None,
-        cheat_steps: allowed_cheat_steps,
-        cheat: None
+        score: 0
     });
 
     while let Some(current) = queue.pop_front() {
+        visited.insert(current.pos);
         if current.score >= uncheated_length {
             continue;
         }
-        if let Some(Cheat::Finished(start, end)) = current.cheat {
-            if let Some(remaining) = route_to_end_cache.get(&current.pos) {
-                let score = current.score + *remaining as isize;
-                if score < uncheated_length {
-                    // println!("found cheat {start:?}->{end:?} with score {}+{}={score} < {uncheated_length}", current.score, remaining);
-                    cheats.insert((start, end), score);
-                }
-                continue;
-            }
-        }
-        for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
-            if let Some(origin_dir) = current.origin_dir {
-                if (dir + DIRECTIONS.len() / 2) % DIRECTIONS.len() == origin_dir {
+
+        for dx in -allowed_cheat_steps..=allowed_cheat_steps {
+            for dy in -allowed_cheat_steps..=allowed_cheat_steps {
+                let steps = dx.abs() + dy.abs();
+                if steps == 0 || steps > allowed_cheat_steps {
                     continue;
                 }
+                let next = (current.pos.0 + dx, current.pos.1 + dy);
+                let Some(remaining) = route_to_end_cache.get(&next) else {
+                    continue;
+                };
+                let score = current.score + steps + *remaining as isize;
+                if score < uncheated_length {
+                    cheats.push(score);
+                }
             }
+        }
+
+        for (dx, dy) in DIRECTIONS {
             let (nx, ny) = (current.pos.0 + dx, current.pos.1 + dy);
+            if visited.contains(&(nx, ny)) {
+                continue;
+            }
             let cell = original_map.signed_get_or_default(nx, ny);
-            if cell == b'\0' {
+            if cell == b'\0' || cell == b'#' {
                 continue;
             }
 
-            let step = {
-                let mut step = PathState {
-                    pos: (nx, ny),
-                    origin_dir: Some(dir),
-                    ..current
-                };
-                step.score += 1;
-
-                match step.cheat {
-                    None => {
-                        if cell == b'#' {
-                            step.cheat = Some(Cheat::Started(current.pos));
-                            step.cheat_steps -= 1;
-                        }
-                    },
-                    Some(Cheat::Started(start)) => {
-                        if cell != b'#' {
-                            step.cheat = Some(Cheat::Finished(start, (nx, ny)));
-
-                        } else if step.cheat_steps <= 1 {
-                            continue;
-                        }
-                        step.cheat_steps -= 1;
-                    },
-                    Some(Cheat::Finished(_, _)) => {
-                        if cell == b'#' {
-                            continue;
-                        }
-                    }
-                }
-
-                step
+            let step = PathState {
+                pos: (nx, ny),
+                score: current.score + 1,
             };
             if step.score > uncheated_length {
                 continue;
             }
 
             queue.push_back(step);
-            map.signed_set(nx, ny, match step.cheat {
-                Some(Cheat::Started(_)) => b'X',
-                _ => b'*'
-            });
+            map.signed_set(nx, ny, b'*');
         }
     }
-    dbg!(&map);
 
-    cheats.iter().map(|(_, score)| *score).collect()
+    cheats
 }
 
 
@@ -153,38 +116,33 @@ pub fn solve(input: Input) -> Output {
             queue.push_back((nx, ny, dist + 1));
         }
     }
-    let uncheated_length = distance_field.get(&(start.0, start.1)).unwrap().clone();
-    dbg!(uncheated_length);
+    let uncheated_length = *distance_field
+        .get(&(start.0, start.1))
+        .unwrap_or_err()?;
 
-    let mut lengths = count_cheats(
+    let lengths = count_cheats(
         &original_map,
         (start.0, start.1),
         2,
         &distance_field,
         uncheated_length as isize
     );
-    lengths.sort();
     let good_cheats = lengths
         .iter()
         .filter(|len| **len + 100 <= uncheated_length as isize)
         .count();
-    println!("{:?}", &lengths.chunk_by(|a, b| a==b).map(|a| (uncheated_length as isize - a[0], a.len())).collect::<Vec<_>>());
-    dbg!(&lengths.len());
 
-    let mut lengths = count_cheats(
+    let lengths = count_cheats(
         &original_map,
         (start.0, start.1),
         20,
         &distance_field,
         uncheated_length as isize
     );
-    lengths.sort();
     let good_cheats2 = lengths
         .iter()
         .filter(|len| **len + 100 <= uncheated_length as isize)
         .count();
-    println!("{:?}", &lengths.chunk_by(|a, b| a==b).map(|a| (uncheated_length as isize - a[0], a.len())).collect::<Vec<_>>());
-    dbg!(&lengths.len());
 
 
     output!(good_cheats, good_cheats2)
