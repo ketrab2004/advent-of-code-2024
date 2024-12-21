@@ -1,5 +1,6 @@
-use std::{collections::{HashMap, VecDeque}, io::BufRead};
+use std::{cmp::Reverse, collections::{HashMap, VecDeque}, io::BufRead};
 use color_eyre::eyre::Result;
+use priority_queue::PriorityQueue;
 use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
 
 
@@ -20,7 +21,7 @@ fn dir_to_char(dir: usize) -> u8 {
     }
 }
 
-fn shortest_path(keypad: &Grid, desired_output: &[u8]) -> Result<Vec<u8>> {
+fn shortest_path(keypad: &Grid, desired_output: &[u8], upper_keypad: Option<&Grid>) -> Result<Vec<u8>> {
     let mut output = Vec::new();
 
     let mut current = keypad
@@ -28,9 +29,9 @@ fn shortest_path(keypad: &Grid, desired_output: &[u8]) -> Result<Vec<u8>> {
         .find(|(_, _, value)| *value == b'A')
         .unwrap_or_err()?;
 
-    // let (width, height) = keypad.get_size();
-    // let mut directions = HashMap::with_capacity(width * height);
-    // let mut queue = VecDeque::with_capacity(width * height);
+    let (width, height) = keypad.get_size();
+    let mut directions = HashMap::with_capacity(width * height);
+    let mut queue = PriorityQueue::with_capacity(width * height);
     for n in desired_output {
         let mut map = keypad.clone();
         let dest = keypad
@@ -39,61 +40,57 @@ fn shortest_path(keypad: &Grid, desired_output: &[u8]) -> Result<Vec<u8>> {
             .unwrap_or_err()?;
         println!("moving from {current:?} to {dest:?}");
 
-        let dy = dest.1 - current.1;
-        for v in 0..dy.abs() {
-            if dy > 0 {
-                output.push(b'v');
-                map.signed_set(current.0, current.1 + v, b'*');
-            } else {
-                output.push(b'^');
-                map.signed_set(current.0, current.1 - v, b'*');
+        queue.clear();
+        directions.clear();
+        queue.push((dest.0, dest.1, None), Reverse(0));
+        while let Some((next, prio)) = queue.pop() {
+            if (next.0, next.1) == (current.0, current.1) {
+                break;
+            }
+            dbg!(prio);
+            for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
+                let (nx, ny) = (next.0 - dx, next.1 - dy);
+                let new_value = keypad.signed_get_or_default(nx, ny);
+                if new_value == b' ' || new_value == b'\0' || directions.contains_key(&(nx, ny)) {
+                    continue;
+                }
+                directions.insert((nx, ny), dir);
+                let mut next_prio = prio.0 + 1000;
+
+                if let Some(upper_keypad) = upper_keypad {
+                    let current_upper_key = match next.2 {
+                        Some(dir) => dir_to_char(dir),
+                        None => b'A'
+                    };
+                    let current = upper_keypad
+                        .iter_signed()
+                        .find(|(_, _, value)| *value == current_upper_key)
+                        .unwrap_or_err()?;
+                    let next = upper_keypad
+                        .iter_signed()
+                        .find(|(_, _, value)| *value == dir_to_char(dir))
+                        .unwrap_or_err()?;
+
+                    next_prio += (next.0 - current.0).abs() + (next.1 - current.1).abs();
+                    dbg!(char::from(current_upper_key), char::from(dir_to_char(dir)), next_prio);
+                }
+
+                queue.push((nx, ny, Some(dir)), Reverse(next_prio));
             }
         }
-        let dx = dest.0 - current.0;
-        for v in 0..dx.abs() {
-            if dx > 0 {
-                output.push(b'>');
-                map.signed_set(current.0 + v, current.1 + dy, b'*');
-            } else {
-                output.push(b'<');
-                map.signed_set(current.0 - v, current.1 + dy, b'*');
+
+        let mut next = (current.0, current.1);
+        loop {
+            map.signed_set(next.0, next.1, b'*');
+            if next == (dest.0, dest.1) {
+                break;
             }
+            let dir = directions.get(&next).unwrap_or_err()?;
+            let (dx, dy) = DIRECTIONS[*dir];
+            next = (next.0 + dx, next.1 + dy);
+            output.push(dir_to_char(*dir));
         }
         output.push(b'A');
-
-        // queue.clear();
-        // directions.clear();
-        // queue.push_back(current);
-        // while let Some(next) = queue.pop_front() {
-        //     if next == dest {
-        //         break;
-        //     }
-        //     for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
-        //         let (nx, ny) = (next.0 + dx, next.1 + dy);
-        //         let new_value = keypad.signed_get_or_default(nx, ny);
-        //         if new_value != b' ' && new_value != b'\0' {
-        //             directions.insert((nx, ny), dir);
-        //             queue.push_back((nx, ny, new_value));
-        //         }
-        //     }
-        // }
-        // let mut next = (current.0, current.1);
-        // loop {
-        //     map.signed_set(next.0, next.1, b'*');
-        //     if next == (dest.0, dest.1) {
-        //         break;
-        //     }
-        //     for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
-        //         let new_pos = (next.0 + dx, next.1 + dy);
-        //         let Some(next_dir) = directions.get(&new_pos) else {
-        //             continue;
-        //         };
-        //         if *next_dir == dir {
-        //             next = new_pos;
-        //             output.push(dir_to_char(dir));
-        //         }
-        //     }
-        // }
         dbg!(&map);
         current = dest;
     }
@@ -109,12 +106,12 @@ pub fn solve(input: Input) -> Output {
     for line in input.lines() {
         let line = line?;
 
-        let route = shortest_path(&numerical_keypad, line.as_bytes())?;
+        let route = shortest_path(&numerical_keypad, line.as_bytes(), Some(&directional_keypad))?;
         dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
-        let route = shortest_path(&directional_keypad, route.as_slice())?;
-        dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
-        let route = shortest_path(&directional_keypad, route.as_slice())?;
-        dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
+        // let route = shortest_path(&directional_keypad, route.as_slice(), Some(&directional_keypad))?;
+        // dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
+        // let route = shortest_path(&directional_keypad, route.as_slice(), None)?;
+        // dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
         dbg!(&line, line[..line.len()-1].parse::<usize>()?, route.len());
 
         sum += route.len() * line[..line.len()-1].parse::<usize>()?;
