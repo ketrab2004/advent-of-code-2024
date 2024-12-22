@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::BufRead};
+use std::{collections::HashMap, io::BufRead, iter::repeat};
 use color_eyre::eyre::{eyre, Result};
 use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
 
@@ -45,7 +45,7 @@ impl Iterator for LineIterator {
 }
 
 
-/// Calculates the cost of taking the given step on the remaining keypads.
+/// Calculates the cost of taking the given path on the remaining keypads.
 /// Recursing deeper, but going less deep in terms of keypads.
 fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isize)), usize>)], line: LineIterator) -> Result<usize> {
     if remaining.len() == 0 {
@@ -81,7 +81,6 @@ fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isiz
         prev_delta = cur_delta;
     }
     score += shortest_path(remaining, pos, (start_pos.0, start_pos.1))?;
-    // println!("x first line {} depth {} has score {score}", line.x_first, remaining.len() + 1);
 
     Ok(score)
 }
@@ -109,12 +108,10 @@ fn shortest_path(
         .filter(|line| {
             for (dx, dy) in **line {
                 let val = keypad.signed_get_or_default(start.0 + dx, start.1 + dy);
-                // println!("step ({dx}, {dy}) at ({}, {}) is {}", start.0 + dx, start.1 + dy, unsafe{char::from_u32_unchecked(val as u32)});
                 if val == b' ' || val == b'\0' {
                     return false;
                 }
             }
-            // println!("x first line {} is valid", line.x_first);
             true
         })
         .filter_map(|line| match path_go_deeper(remaining, *line) {
@@ -125,11 +122,6 @@ fn shortest_path(
         .unwrap_or_err()?;
 
     cache.insert((start, end), best_option);
-    println!("from {} to {} in depth {} is score {best_option}",
-        unsafe{char::from_u32_unchecked(keypad.signed_get_or_default(start.0, start.1) as u32)},
-        unsafe{char::from_u32_unchecked(keypad.signed_get_or_default(end.0, end.1) as u32)},
-        remaining.len() + 1
-    );
     Ok(best_option)
 }
 
@@ -143,9 +135,17 @@ pub fn solve(input: Input) -> Output {
         &directional_keypad
     ].map(|keypad| (keypad, HashMap::new()));
 
+    let mut part2_keypads =
+        repeat(&numerical_keypad).take(1)
+        .chain(repeat(&directional_keypad).take(25))
+        .map(|keypad| (keypad, HashMap::new()))
+        .collect::<Vec<_>>();
+
     let mut sum = 0;
+    let mut sum2 = 0;
     for line in input.lines() {
         let line = line?;
+        let line_num = line[..line.len()-1].parse::<usize>()?;
 
         let start = part1_keypads[0].0
             .iter_signed()
@@ -164,11 +164,22 @@ pub fn solve(input: Input) -> Output {
             route_sum += shortest_path(&mut part1_keypads, last_pos, end_pos)?;
             last_pos = end_pos;
         }
-
-        let line_num = line[..line.len()-1].parse::<usize>()?;
         sum += route_sum * line_num;
-        dbg!(line, &route_sum);
+
+        route_sum = 0;
+        last_pos = (start.0, start.1);
+        for output in line.as_bytes() {
+            let end = part2_keypads[0].0
+                .iter_signed()
+                .find(|(_, _, value)| value == output)
+                .unwrap_or_err()?;
+            let end_pos = (end.0, end.1);
+
+            route_sum += shortest_path(&mut part2_keypads, last_pos, end_pos)?;
+            last_pos = end_pos;
+        }
+        sum2 += route_sum * line_num;
     }
 
-    output!(sum)
+    output!(sum, sum2)
 }
