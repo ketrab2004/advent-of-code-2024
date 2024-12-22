@@ -47,39 +47,43 @@ impl Iterator for LineIterator {
 
 /// Calculates the cost of taking the given step on the remaining keypads.
 /// Recursing deeper, but going less deep in terms of keypads.
-fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isize)), usize>)], step: (isize, isize)) -> Result<usize> {
-    if remaining.len() <= 0 {
-        // On the keypad controlled by us, each move takes 1 step.
-        return Ok(1);
+fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isize)), usize>)], line: LineIterator) -> Result<usize> {
+    if remaining.len() == 0 {
+        return Ok(line.count() + 1);
     }
     let (keypad, ..) = remaining[0];
-
-    let button = match step {
-        (1, 0) => b'>',
-        (0, 1) => b'v',
-        (-1, 0) => b'<',
-        (0, -1) => b'^',
-        _ => return Err(eyre!("Invalid step {step:?}"))
-    };
     let start_pos = keypad
         .iter_signed()
         .find(|(_, _, value)| *value == b'A')
         .unwrap_or_err()?;
-    let button_pos = keypad
-        .iter_signed()
-        .find(|(_, _, value)| *value == button)
-        .unwrap_or_err()?;
 
-    Ok(shortest_path(
-        remaining,
-        (start_pos.0, start_pos.1),
-        (button_pos.0, button_pos.1)
-    )?
-    + shortest_path(
-        remaining,
-        (button_pos.0, button_pos.1),
-        (start_pos.0, start_pos.1)
-    )?)
+    let mut prev_delta = (0, 0);
+    let mut pos = (start_pos.0, start_pos.1);
+    let mut score = 0;
+    for cur_delta in line {
+        let step_delta = (prev_delta.0 - cur_delta.0, prev_delta.1 - cur_delta.1);
+        let button = match step_delta {
+            (1, 0) => b'<',
+            (0, 1) => b'^',
+            (-1, 0) => b'>',
+            (0, -1) => b'v',
+            _ => return Err(eyre!("Invalid step {step_delta:?}"))
+        };
+
+        let button_pos = keypad
+            .iter_signed()
+            .find(|(_, _, value)| *value == button)
+            .unwrap_or_err()?;
+        let dest = (button_pos.0, button_pos.1);
+
+        score += shortest_path(remaining, pos, dest)?;
+        pos = dest;
+        prev_delta = cur_delta;
+    }
+    score += shortest_path(remaining, pos, (start_pos.0, start_pos.1))?;
+    // println!("x first line {} depth {} has score {score}", line.x_first, remaining.len() + 1);
+
+    Ok(score)
 }
 
 /// Returns the number of steps to get from `start` to `end`,
@@ -90,6 +94,10 @@ fn shortest_path(
     start: (isize, isize),
     end: (isize, isize)
 ) -> Result<usize> {
+    if keypads.len() <= 0 {
+        // On the keypad controlled by us, each move (to anywhere) takes 1 step.
+        return Ok(1);
+    }
     let ((keypad, cache), remaining) = keypads.split_first_mut().unwrap_or_err()?;
     if let Some(steps) = cache.get(&(start, end)) {
         return Ok(*steps);
@@ -109,19 +117,7 @@ fn shortest_path(
             // println!("x first line {} is valid", line.x_first);
             true
         })
-        .map(|line| {
-            let mut score = 0;
-            let mut prev_delta = (0, 0);
-            //TODO fix this \/
-            for cur_delta in *line {
-                let step_delta = (prev_delta.0 - cur_delta.0, prev_delta.1 - cur_delta.1);
-                score += path_go_deeper(remaining, step_delta)?;
-                prev_delta = cur_delta;
-            }
-            // println!("x first line {} depth {} has score {score}", line.x_first, remaining.len() + 1);
-            Ok(score)
-        })
-        .filter_map(|option: Result<usize>| match option {
+        .filter_map(|line| match path_go_deeper(remaining, *line) {
             Ok(score) => Some(score),
             Err(_) => None
         })
