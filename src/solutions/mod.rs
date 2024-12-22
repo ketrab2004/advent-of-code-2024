@@ -21,6 +21,7 @@ mod d18;
 mod d19;
 mod d20;
 mod d21;
+mod d22;
 
 
 pub fn solve_day(day: u32, input: Input) -> Option<Output> {
@@ -46,6 +47,7 @@ pub fn solve_day(day: u32, input: Input) -> Option<Output> {
         19 => Some(d19::solve(input)),
         20 => Some(d20::solve(input)),
         21 => Some(d21::solve(input)),
+        22 => Some(d22::solve(input)),
         _ => None
     }
 }
