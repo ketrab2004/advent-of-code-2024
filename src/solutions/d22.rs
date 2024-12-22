@@ -25,26 +25,20 @@ fn next_num(num: i64) -> i64 {
 pub fn solve(input: Input) -> Output {
     let steps = 2000;
 
-    let mut starting_nums = Vec::new();
-
-    let mut diff_history = Vec::with_capacity(steps - 1);
-    let mut price_history = Vec::with_capacity(steps);
     let mut all_sequences = HashSet::new();
     let mut all_passed_sequences = Vec::new();
 
-    let mut sum = 0;
+    let mut diff_history = Vec::with_capacity(steps - 1);
+    let mut price_history = Vec::with_capacity(steps);
+    let mut final_value_sum = 0;
     for line in input.lines() {
         let line = line?;
         diff_history.clear();
         price_history.clear();
         let mut passed_sequences = HashMap::with_capacity(steps);
-
         let mut highest_diff_index = [None; 10];
 
         let mut current = line.parse()?;
-        starting_nums.push(current);
-
-        let mut max = -1;
         let mut last_price = 0;
         for i in 0..steps {
             let price = current % 10;
@@ -67,12 +61,9 @@ pub fn solve(input: Input) -> Output {
                 }
             }
 
-            if current > max {
-                max = current;
-            }
             current = next_num(current);
         }
-        sum += current;
+        final_value_sum += current;
 
         all_passed_sequences.push(passed_sequences);
     }
@@ -98,5 +89,5 @@ pub fn solve(input: Input) -> Output {
         progress.inc(1);
     }
 
-    output!(sum, best_banana_winnings)
+    output!(final_value_sum, best_banana_winnings)
 }

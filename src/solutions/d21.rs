@@ -1,216 +1,177 @@
-use std::{cmp::Reverse, collections::{HashMap, VecDeque}, io::BufRead};
+use std::{collections::HashMap, io::BufRead};
 use color_eyre::eyre::{eyre, Result};
-use priority_queue::PriorityQueue;
 use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
 
 
-const DIRECTIONS: [(isize, isize); 4] = [
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1)
-];
-
-fn draw_line_x_first(keypad: &Grid, from: (isize, isize), dx: isize, dy: isize, output: &mut Vec<u8>) -> bool {
-    let range = if dx >= 0 { 1..=dx } else { dx..=-1 };
-    for v in range {
-        if dx > 0 {
-            output.push(b'>');
-        } else {
-            output.push(b'<');
-        }
-        if keypad.signed_get_or_default(from.0 + v, from.1) == b' ' {
-            return false;
-        }
-    }
-    let range = if dy >= 0 { 1..=dy } else { dy..=-1 };
-    for v in range {
-        if dy > 0 {
-            output.push(b'v');
-        } else {
-            output.push(b'^');
-        }
-        if keypad.signed_get_or_default(from.0 + dx, from.1 + v) == b' ' {
-            return false;
-        }
-    }
-    output.push(b'A');
-    true
+#[derive(Debug, Clone, Copy)]
+struct LineIterator {
+    current: (isize, isize),
+    delta: (isize, isize),
+    x_first: bool
 }
-fn draw_line_y_first(keypad: &Grid, from: (isize, isize), dx: isize, dy: isize, output: &mut Vec<u8>) -> bool {
-    let range = if dy >= 0 { 1..=dy } else { dy..=-1 };
-    for v in range {
-        if dy > 0 {
-            output.push(b'v');
-        } else {
-            output.push(b'^');
-        }
-        if keypad.signed_get_or_default(from.0, from.1 + v) == b' ' {
-            return false;
+impl LineIterator {
+    pub fn new(dx: isize, dy: isize, x_first: bool) -> Self {
+        Self {
+            current: (0, 0),
+            delta: (dx, dy),
+            x_first
         }
     }
-    let range = if dx >= 0 { 1..=dx } else { dx..=-1 };
-    for v in range {
-        if dx > 0 {
-            output.push(b'>');
+}
+impl Iterator for LineIterator {
+    type Item = (isize, isize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current == self.delta {
+            return None;
+        }
+
+        if self.x_first {
+            self.current.0 += self.delta.0.signum();
+
+            if self.current.0 == self.delta.0 {
+                self.x_first = false;
+            }
         } else {
-            output.push(b'<');
+            self.current.1 += self.delta.1.signum();
+
+            if self.current.1 == self.delta.1 {
+                self.x_first = true;
+            }
         }
-        if keypad.signed_get_or_default(from.0 + v, from.1 + dy) == b' ' {
-            return false;
-        }
+
+        Some(self.current)
     }
-    output.push(b'A');
-    true
 }
 
-fn draw_line(keypad: &Grid, from: (isize, isize), dx: isize, dy: isize, upper_data: Option<(&Grid, (isize, isize))>) -> Result<Vec<u8>> {
-    let mut output = Vec::with_capacity((dx.abs() + dy.abs()) as usize);
 
-    let mut x_first = true;
-    if let Some((upper_keyboard, (ux, uy))) = upper_data {
-        let horizontal = if dx >= 0 { b'>' } else { b'<' };
-        let vertical = if dy >= 0 { b'v' } else { b'^' };
-
-        let x_pos = upper_keyboard
-            .iter_signed()
-            .find(|(_, _, value)| *value == horizontal)
-            .unwrap_or_err()?;
-        let y_pos = upper_keyboard
-            .iter_signed()
-            .find(|(_, _, value)| *value == vertical)
-            .unwrap_or_err()?;
-
-        let x_dist = (ux - x_pos.0).abs() + (uy - x_pos.1).abs();
-        let y_dist = (ux - y_pos.0).abs() + (uy - y_pos.1).abs();
-        if y_dist < x_dist {
-            x_first = false;
-        }
+/// Calculates the cost of taking the given step on the remaining keypads.
+/// Recursing deeper, but going less deep in terms of keypads.
+fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isize)), usize>)], step: (isize, isize)) -> Result<usize> {
+    if remaining.len() <= 0 {
+        // On the keypad controlled by us, each move takes 1 step.
+        return Ok(1);
     }
+    let (keypad, ..) = remaining[0];
 
-    let success = if x_first {
-        draw_line_x_first(keypad, from, dx, dy, &mut output)
-        || draw_line_y_first(keypad, from, dx, dy, &mut output)
-    } else {
-        draw_line_y_first(keypad, from, dx, dy, &mut output)
-        || draw_line_x_first(keypad, from, dx, dy, &mut output)
+    let button = match step {
+        (1, 0) => b'>',
+        (0, 1) => b'v',
+        (-1, 0) => b'<',
+        (0, -1) => b'^',
+        _ => return Err(eyre!("Invalid step {step:?}"))
     };
-
-    match success {
-        true => Ok(output),
-        false => Err(eyre!("Could not draw straight from {:?} to {:?}", from, (from.0 + dx, from.1 + dy)))
-    }
-}
-
-fn shortest_path(keypad: &Grid, desired_output: &[u8], upper_keypad: Option<&Grid>) -> Result<Vec<u8>> {
-    let mut output = Vec::new();
-
-    let mut current = keypad
+    let start_pos = keypad
         .iter_signed()
         .find(|(_, _, value)| *value == b'A')
         .unwrap_or_err()?;
+    let button_pos = keypad
+        .iter_signed()
+        .find(|(_, _, value)| *value == button)
+        .unwrap_or_err()?;
 
-    // let (width, height) = keypad.get_size();
-    // let mut directions = HashMap::with_capacity(width * height);
-    // let mut queue = PriorityQueue::with_capacity(width * height);
-    for n in desired_output {
-        // let mut map = keypad.clone();
-        let dest = keypad
-            .iter_signed()
-            .find(|(_, _, value)| value == n)
-            .unwrap_or_err()?;
-        // println!("moving from {current:?} to {dest:?}");
+    Ok(shortest_path(
+        remaining,
+        (start_pos.0, start_pos.1),
+        (button_pos.0, button_pos.1)
+    )?
+    + shortest_path(
+        remaining,
+        (button_pos.0, button_pos.1),
+        (start_pos.0, start_pos.1)
+    )?)
+}
 
-        let dx = dest.0 - current.0;
-        let dy = dest.1 - current.1;
-
-        // dbg!((dx, dy), draw_line(keypad, (current.0, current.1), dx, dy));
-        output.extend(draw_line(keypad, (current.0, current.1), dx, dy, match upper_keypad {
-            Some(upper_keypad) => {
-                let upper_keypad_pos = upper_keypad
-                    .iter_signed()
-                    .find(|(_, _, value)| *value == b'A')
-                    .unwrap_or_err()?;
-                Some((upper_keypad, (upper_keypad_pos.0, upper_keypad_pos.1)))
-            },
-            None => None
-        })?);
-
-        // queue.clear();
-        // directions.clear();
-        // queue.push((dest.0, dest.1, None), Reverse(0));
-        // while let Some((next, prio)) = queue.pop() {
-        //     if (next.0, next.1) == (current.0, current.1) {
-        //         break;
-        //     }
-        //     dbg!(prio);
-        //     for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
-        //         let (nx, ny) = (next.0 - dx, next.1 - dy);
-        //         let new_value = keypad.signed_get_or_default(nx, ny);
-        //         if new_value == b' ' || new_value == b'\0' || directions.contains_key(&(nx, ny)) {
-        //             continue;
-        //         }
-        //         directions.insert((nx, ny), dir);
-        //         let mut next_prio = prio.0 + 1000;
-
-        //         if let Some(upper_keypad) = upper_keypad {
-        //             let current_upper_key = match next.2 {
-        //                 Some(dir) => dir_to_char(dir),
-        //                 None => b'A'
-        //             };
-        //             let current = upper_keypad
-        //                 .iter_signed()
-        //                 .find(|(_, _, value)| *value == current_upper_key)
-        //                 .unwrap_or_err()?;
-        //             let next = upper_keypad
-        //                 .iter_signed()
-        //                 .find(|(_, _, value)| *value == dir_to_char(dir))
-        //                 .unwrap_or_err()?;
-
-        //             next_prio += (next.0 - current.0).abs() + (next.1 - current.1).abs();
-        //             dbg!(char::from(current_upper_key), char::from(dir_to_char(dir)), next_prio);
-        //         }
-
-        //         queue.push((nx, ny, Some(dir)), Reverse(next_prio));
-        //     }
-        // }
-
-        // let mut next = (current.0, current.1);
-        // loop {
-        //     map.signed_set(next.0, next.1, b'*');
-        //     if next == (dest.0, dest.1) {
-        //         break;
-        //     }
-        //     let dir = directions.get(&next).unwrap_or_err()?;
-        //     let (dx, dy) = DIRECTIONS[*dir];
-        //     next = (next.0 + dx, next.1 + dy);
-        //     output.push(dir_to_char(*dir));
-        // }
-        // output.push(b'A');
-        // dbg!(&map);
-        current = dest;
+/// Returns the number of steps to get from `start` to `end`,
+/// in the topmost (deepest) given keypad.
+/// Summing the steps in less deep keypads for each step.
+fn shortest_path(
+    keypads: &mut [(&Grid, HashMap<((isize, isize), (isize, isize)), usize>)],
+    start: (isize, isize),
+    end: (isize, isize)
+) -> Result<usize> {
+    let ((keypad, cache), remaining) = keypads.split_first_mut().unwrap_or_err()?;
+    if let Some(steps) = cache.get(&(start, end)) {
+        return Ok(*steps);
     }
 
-    Ok(output)
+    let (dx, dy) = (end.0 - start.0, end.1 - start.1);
+    let best_option = [LineIterator::new(dx, dy, true), LineIterator::new(dx, dy, false)]
+        .iter()
+        .filter(|line| {
+            for (dx, dy) in **line {
+                let val = keypad.signed_get_or_default(start.0 + dx, start.1 + dy);
+                // println!("step ({dx}, {dy}) at ({}, {}) is {}", start.0 + dx, start.1 + dy, unsafe{char::from_u32_unchecked(val as u32)});
+                if val == b' ' || val == b'\0' {
+                    return false;
+                }
+            }
+            // println!("x first line {} is valid", line.x_first);
+            true
+        })
+        .map(|line| {
+            let mut score = 0;
+            let mut prev_delta = (0, 0);
+            //TODO fix this \/
+            for cur_delta in *line {
+                let step_delta = (prev_delta.0 - cur_delta.0, prev_delta.1 - cur_delta.1);
+                score += path_go_deeper(remaining, step_delta)?;
+                prev_delta = cur_delta;
+            }
+            // println!("x first line {} depth {} has score {score}", line.x_first, remaining.len() + 1);
+            Ok(score)
+        })
+        .filter_map(|option: Result<usize>| match option {
+            Ok(score) => Some(score),
+            Err(_) => None
+        })
+        .min()
+        .unwrap_or_err()?;
+
+    cache.insert((start, end), best_option);
+    println!("from {} to {} in depth {} is score {best_option}",
+        unsafe{char::from_u32_unchecked(keypad.signed_get_or_default(start.0, start.1) as u32)},
+        unsafe{char::from_u32_unchecked(keypad.signed_get_or_default(end.0, end.1) as u32)},
+        remaining.len() + 1
+    );
+    Ok(best_option)
 }
 
 pub fn solve(input: Input) -> Output {
     let numerical_keypad = Grid::from_string("789\n456\n123\n 0A".to_string())?;
     let directional_keypad = Grid::from_string(" ^A\n<v>".to_string())?;
 
+    let mut part1_keypads = [
+        &numerical_keypad,
+        &directional_keypad,
+        &directional_keypad
+    ].map(|keypad| (keypad, HashMap::new()));
+
     let mut sum = 0;
     for line in input.lines() {
         let line = line?;
 
-        let route = shortest_path(&numerical_keypad, line.as_bytes(), Some(&directional_keypad))?;
-        dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
-        let route = shortest_path(&directional_keypad, route.as_slice(), Some(&directional_keypad))?;
-        dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
-        let route = shortest_path(&directional_keypad, route.as_slice(), None)?;
-        dbg!(unsafe{String::from_utf8_unchecked(route.clone())});
-        dbg!(&line, line[..line.len()-1].parse::<usize>()?, route.len());
+        let start = part1_keypads[0].0
+            .iter_signed()
+            .find(|(_, _, value)| *value == b'A')
+            .unwrap_or_err()?;
 
-        sum += route.len() * line[..line.len()-1].parse::<usize>()?;
+        let mut route_sum = 0;
+        let mut last_pos = (start.0, start.1);
+        for output in line.as_bytes() {
+            let end = part1_keypads[0].0
+                .iter_signed()
+                .find(|(_, _, value)| value == output)
+                .unwrap_or_err()?;
+            let end_pos = (end.0, end.1);
+
+            route_sum += shortest_path(&mut part1_keypads, last_pos, end_pos)?;
+            last_pos = end_pos;
+        }
+
+        let line_num = line[..line.len()-1].parse::<usize>()?;
+        sum += route_sum * line_num;
+        dbg!(line, &route_sum);
     }
 
     output!(sum)
