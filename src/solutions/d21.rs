@@ -52,10 +52,7 @@ fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isiz
         return Ok(line.count() + 1);
     }
     let (keypad, ..) = remaining[0];
-    let start_pos = keypad
-        .iter_signed()
-        .find(|(_, _, value)| *value == b'A')
-        .unwrap_or_err()?;
+    let start_pos = keypad.find_signed(b'A').unwrap_or_err()?;
 
     let mut prev_delta = (0, 0);
     let mut pos = (start_pos.0, start_pos.1);
@@ -70,11 +67,7 @@ fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isiz
             _ => return Err(eyre!("Invalid step {step_delta:?}"))
         };
 
-        let button_pos = keypad
-            .iter_signed()
-            .find(|(_, _, value)| *value == button)
-            .unwrap_or_err()?;
-        let dest = (button_pos.0, button_pos.1);
+        let dest = keypad.find_signed(button).unwrap_or_err()?;
 
         score += shortest_path(remaining, pos, dest)?;
         pos = dest;
@@ -148,18 +141,15 @@ pub fn solve(input: Input) -> Output {
         let line_num = line[..line.len()-1].parse::<usize>()?;
 
         let start = part1_keypads[0].0
-            .iter_signed()
-            .find(|(_, _, value)| *value == b'A')
+            .find_signed(b'A')
             .unwrap_or_err()?;
 
         let mut route_sum = 0;
         let mut last_pos = (start.0, start.1);
         for output in line.as_bytes() {
-            let end = part1_keypads[0].0
-                .iter_signed()
-                .find(|(_, _, value)| value == output)
+            let end_pos = part1_keypads[0].0
+                .find_signed(*output)
                 .unwrap_or_err()?;
-            let end_pos = (end.0, end.1);
 
             route_sum += shortest_path(&mut part1_keypads, last_pos, end_pos)?;
             last_pos = end_pos;
@@ -169,11 +159,9 @@ pub fn solve(input: Input) -> Output {
         route_sum = 0;
         last_pos = (start.0, start.1);
         for output in line.as_bytes() {
-            let end = part2_keypads[0].0
-                .iter_signed()
-                .find(|(_, _, value)| value == output)
+            let end_pos = part2_keypads[0].0
+                .find_signed(*output)
                 .unwrap_or_err()?;
-            let end_pos = (end.0, end.1);
 
             route_sum += shortest_path(&mut part2_keypads, last_pos, end_pos)?;
             last_pos = end_pos;

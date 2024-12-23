@@ -1,5 +1,4 @@
 use std::{collections::{HashMap, HashSet}, io::BufRead};
-use indicatif::{ProgressBar, ProgressStyle};
 use crate::{misc::progress::pretty_progress_bar, output, Input, Output};
 
 

@@ -47,14 +47,8 @@ pub fn solve(input: Input) -> Output {
         .map(|line| line.unwrap())
     )?;
 
-    let start = map
-        .iter_signed()
-        .find(|(_, _, value)| *value == b'S')
-        .unwrap_or_err()?;
-    let end = map
-        .iter_signed()
-        .find(|(_, _, value)| *value == b'E')
-        .unwrap_or_err()?;
+    let start = map.find_signed(b'S').unwrap_or_err()?;
+    let end = map.find_signed(b'E').unwrap_or_err()?;
     map.signed_set(end.0, end.1, b'.');
 
     let mut origins = HashMap::new();

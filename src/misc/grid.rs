@@ -224,6 +224,38 @@ impl Grid {
     }
 
 
+    /// Converts index in the data buffer itself to (x, y) coordinates.
+    fn data_index_to_xy(&self, index: usize) -> (usize, usize) {
+        let x = index % (self.width + 1);
+        let y = index / (self.width + 1);
+        (x, y)
+    }
+
+    fn data_index_to_xy_signed(&self, index: usize) -> (isize, isize) {
+        let (x, y) = self.data_index_to_xy(index);
+        (x as isize, y as isize)
+    }
+
+    fn find_index(&self, value: u8) -> Option<usize> {
+        self.data
+            .as_bytes()
+            .iter()
+            .position(|byte| *byte == value)
+    }
+
+    pub fn find(&self, value: u8) -> Option<(usize, usize)> {
+        self.find_index(value)
+            .map(|index| self.data_index_to_xy(index))
+    }
+
+    pub fn find_signed(&self, value: u8) -> Option<(isize, isize)> {
+        self.find_index(value)
+            .map(|index| self.data_index_to_xy_signed(index))
+    }
+
+
+    /// Converts index in the grid to (x, y) coordinates.
+    /// For in the grid iterators.
     fn index_to_xy(&self, index: usize) -> (usize, usize) {
         let x = index % self.width;
         let y = index / self.width;

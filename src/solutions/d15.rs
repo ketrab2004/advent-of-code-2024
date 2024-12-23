@@ -84,10 +84,7 @@ pub fn solve(input: Input) -> Output {
     let mut map = Grid::from_string(map)?;
     let mut big_map = Grid::from_string(big_map)?;
 
-    let (mut x, mut y, ..) = map
-        .iter_signed()
-        .find(|(_, _, value)| *value == b'@')
-        .unwrap_or_err()?;
+    let (mut x, mut y, ..) = map.find_signed(b'@').unwrap_or_err()?;
     let (mut bx, mut by) = (x * 2, y);
 
     for line in lines {

@@ -90,14 +90,8 @@ pub fn solve(input: Input) -> Output {
         .map(|line| line.unwrap())
     )?;
 
-    let start = original_map
-        .iter_signed()
-        .find(|(_, _, value)| *value == b'S')
-        .unwrap_or_err()?;
-    let end = original_map
-        .iter_signed()
-        .find(|(_, _, value)| *value == b'E')
-        .unwrap_or_err()?;
+    let start = original_map.find_signed(b'S').unwrap_or_err()?;
+    let end = original_map.find_signed(b'E').unwrap_or_err()?;
     original_map.signed_set(end.0, end.1, b'.');
 
 

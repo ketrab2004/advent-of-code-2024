@@ -16,7 +16,6 @@ fn traverse(map: &mut Grid, ux: isize, uy: isize) -> bool {
     let mut current_direction = 0;
 
     loop {
-        // dbg!(&map);
         let (dx, dy) = DIRECTIONS[current_direction];
         let next = map.signed_get_or_default(x + dx, y + dy);
         match next {
@@ -56,13 +55,10 @@ pub fn solve(input: Input) -> Output {
         .lines()
         .map(|line| line.unwrap())
     )?;
-    let (ux, uy, _) = original_map
-        .iter()
-        .find(|(_, _, value)| value == &b'^')
-        .unwrap_or_err()?;
+    let (ux, uy) = original_map.find_signed(b'^').unwrap_or_err()?;
 
     let mut map = original_map.clone();
-    assert_eq!(traverse(&mut map, ux as isize, uy as isize), false);
+    assert_eq!(traverse(&mut map, ux, uy), false);
 
     let count = map
         .iter()
@@ -73,10 +69,10 @@ pub fn solve(input: Input) -> Output {
     let progress = pretty_progress_bar(count as u64);
 
     let mut obstruction_count = 0;
-    for (x, y, _) in map.iter().filter(|(_, _, value)| value == &b'X') {
+    for (x, y, _) in map.iter_signed().filter(|(_, _, value)| value == &b'X') {
         let mut map = original_map.clone();
-        map.signed_set(x as isize, y as isize, b'O');
-        if traverse(&mut map, ux as isize, uy as isize) {
+        map.signed_set(x, y, b'O');
+        if traverse(&mut map, ux, uy) {
             obstruction_count += 1;
         }
         progress.inc(1);
