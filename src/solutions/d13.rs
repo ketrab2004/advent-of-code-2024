@@ -22,9 +22,9 @@ pub fn solve(input: Input) -> Output {
     let mut total = 0;
     let mut huge_total = 0;
     for mut chunk in &input.lines().chunks(4) {
-        let button_a = parse_coords(&button_regex, chunk.next().unwrap_or_err()??.as_str())?;
-        let button_b = parse_coords(&button_regex, chunk.next().unwrap_or_err()??.as_str())?;
-        let prize = parse_coords(&prize_regex, chunk.next().unwrap_or_err()??.as_str())?;
+        let button_a = parse_coords(button_regex, chunk.next().unwrap_or_err()??.as_str())?;
+        let button_b = parse_coords(button_regex, chunk.next().unwrap_or_err()??.as_str())?;
+        let prize = parse_coords(prize_regex, chunk.next().unwrap_or_err()??.as_str())?;
 
         let max_b_steps = min(min(prize.0 / button_b.0, prize.1 / button_b.1), 100);
         for b_steps in (0..=max_b_steps).rev() {
@@ -37,7 +37,7 @@ pub fn solve(input: Input) -> Output {
             );
 
             if remaining.0 == 0 && remaining.1 == 0 {
-                total += a_steps * 3 + b_steps * 1;
+                total += a_steps * 3 + b_steps;
                 break;
             }
         }
@@ -60,7 +60,7 @@ pub fn solve(input: Input) -> Output {
         );
 
         if diff.0 == 0 && diff.1 == 0 {
-            huge_total += a_steps * 3 + b_steps * 1;
+            huge_total += a_steps * 3 + b_steps;
         }
     }
 

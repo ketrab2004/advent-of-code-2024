@@ -1,18 +1,12 @@
 use std::{collections::VecDeque, io::BufRead, iter};
 use color_eyre::eyre::Result;
-use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar}, output, Input, Output};
+use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar, vector2::Directions}, output, Input, Output};
 
-
-const DIRECTIONS: [(isize, isize); 4] = [
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1)
-];
 
 fn find_path(grid: &mut Grid, bytes_to_fall: &mut impl Iterator<Item = (isize, isize)>, start: (isize, isize), end: (isize, isize)) -> Result<Option<usize>> {
+    let directions = isize::DIRECTIONS;
     let mut queue = VecDeque::new();
-    queue.push_back((start.0 as isize, start.1 as isize, 0));
+    queue.push_back((start.0, start.1, 0));
 
     let mut last_dist = 0;
     while let Some((x, y, dist)) = queue.pop_front() {
@@ -27,7 +21,7 @@ fn find_path(grid: &mut Grid, bytes_to_fall: &mut impl Iterator<Item = (isize, i
             }
         }
 
-        for (dx, dy) in DIRECTIONS {
+        for (dx, dy) in directions {
             let (nx, ny) = (x + dx, y + dy);
 
             if grid.signed_get_or_default(nx, ny) == b' ' {
@@ -60,7 +54,7 @@ pub fn solve(input: Input) -> Output {
 
     let path_length = find_path(
         &mut grid,
-        &mut bytes_to_fall.map(|pos| *pos),
+        &mut bytes_to_fall.copied(),
         (0, 0),
         (size - 1, size - 1)
     )?;

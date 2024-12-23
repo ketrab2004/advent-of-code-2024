@@ -7,22 +7,26 @@ use crate::{misc::option::OptionExt, output, Input, Output};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Opcode {
-    ADV, BDV, CDV,
-    BXL, BXC,
-    BST, OUT,
-    JNZ
+    // adv, bdv, cdv
+    DivisionA, DivisionB, DivisionC,
+    // bxl, bxc
+    XorLiteralB, XorCB,
+    // bst, out
+    ModuloB, ModuloOut,
+    // jnz
+    JumpANotZero
 }
 impl Opcode {
     fn from_number(op: u8) -> Self {
         match op {
-            0 => Opcode::ADV,
-            1 => Opcode::BXL,
-            2 => Opcode::BST,
-            3 => Opcode::JNZ,
-            4 => Opcode::BXC,
-            5 => Opcode::OUT,
-            6 => Opcode::BDV,
-            7 => Opcode::CDV,
+            0 => Opcode::DivisionA,
+            1 => Opcode::XorLiteralB,
+            2 => Opcode::ModuloB,
+            3 => Opcode::JumpANotZero,
+            4 => Opcode::XorCB,
+            5 => Opcode::ModuloOut,
+            6 => Opcode::DivisionB,
+            7 => Opcode::DivisionC,
             _ => unreachable!()
         }
     }
@@ -50,14 +54,14 @@ impl Operand {
             _ => unreachable!()
         }
     }
-    fn to_number(&self, register_file: &[i64]) -> i64 {
+    fn as_number(&self, register_file: &[i64]) -> i64 {
         match self {
             Operand::Register(register) => register_file[*register as usize],
             Operand::Immediate(value) => *value as i64,
             Operand::Reserved => -1
         }
     }
-    fn to_literal(&self) -> i64 {
+    fn as_literal(&self) -> i64 {
         match self {
             Operand::Register(register) => *register as i64 + 4,
             Operand::Immediate(value) => *value as i64,
@@ -80,34 +84,34 @@ fn run(register_file: &mut [i64], program: &[Instruction], output: &mut Vec<u8>,
         let instruction = &program[pc];
 
         match instruction.op {
-            Opcode::ADV | Opcode::BDV | Opcode::CDV => {
+            Opcode::DivisionA | Opcode::DivisionB | Opcode::DivisionC => {
                 let numerator = register_file[Register::A as usize];
-                let combo = instruction.operand.to_number(&register_file);
+                let combo = instruction.operand.as_number(register_file);
                 let denominator = 2i64.pow(combo as u32);
                 register_file[match instruction.op {
-                    Opcode::ADV => Register::A,
-                    Opcode::BDV => Register::B,
-                    Opcode::CDV => Register::C,
+                    Opcode::DivisionA => Register::A,
+                    Opcode::DivisionB => Register::B,
+                    Opcode::DivisionC => Register::C,
                     _ => unreachable!()
                 } as usize] = numerator / denominator;
             },
-            Opcode::BXL | Opcode::BXC => {
+            Opcode::XorLiteralB | Opcode::XorCB => {
                 let input = register_file[Register::B as usize];
                 let combo = match instruction.op {
-                    Opcode::BXL => instruction.operand.to_literal(),
-                    Opcode::BXC => register_file[Register::C as usize],
+                    Opcode::XorLiteralB => instruction.operand.as_literal(),
+                    Opcode::XorCB => register_file[Register::C as usize],
                     _ => unreachable!()
                 };
                 register_file[Register::B as usize] = input ^ combo;
             },
-            Opcode::BST | Opcode::OUT => {
-                let combo = instruction.operand.to_number(&register_file);
+            Opcode::ModuloB | Opcode::ModuloOut => {
+                let combo = instruction.operand.as_number(register_file);
                 let result = combo % 8;
 
                 let output_len_before = output.len();
                 match instruction.op {
-                    Opcode::BST => register_file[Register::B as usize] = result,
-                    Opcode::OUT => {
+                    Opcode::ModuloB => register_file[Register::B as usize] = result,
+                    Opcode::ModuloOut => {
                         let result = result.to_string();
                         for c in result.chars() {
                             output.push(c.to_digit(10).unwrap_or_err()? as u8);
@@ -116,15 +120,15 @@ fn run(register_file: &mut [i64], program: &[Instruction], output: &mut Vec<u8>,
                     _ => unreachable!()
                 }
 
-                if instruction.op == Opcode::OUT && expected.is_some() {
-                    if output[output_len_before..] != expected.unwrap()[output_len_before..output.len()] {
+                if let Some(expected) = expected {
+                    if instruction.op == Opcode::ModuloOut && output[output_len_before..] != expected[output_len_before..output.len()] {
                         return Ok(false);
                     }
                 }
             },
-            Opcode::JNZ => {
+            Opcode::JumpANotZero => {
                 if register_file[Register::A as usize] != 0 {
-                    pc = (instruction.operand.to_literal() / 2) as usize;
+                    pc = (instruction.operand.as_literal() / 2) as usize;
                     continue;
                 }
             }
@@ -141,14 +145,14 @@ pub fn solve(input: Input) -> Output {
     let mut register_file = [0i64; 3];
     for line in input.by_ref() {
         let line = line?;
-        if line.len() == 0 {
+        if line.is_empty() {
             break;
         }
         let matches = register_regex
             .captures(line.as_str())
             .unwrap_or_err()?;
 
-        register_file[(matches[1].as_bytes()[0] as u8 - b'A') as usize] = matches[2].parse()?;
+        register_file[(matches[1].as_bytes()[0] - b'A') as usize] = matches[2].parse()?;
     }
 
     let program_regex = regex!(r"Program: (\d[,\d]+)");

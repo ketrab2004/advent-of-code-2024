@@ -124,8 +124,8 @@ pub fn solve(input: Input) -> Output {
         let checksum = shrink_1(&mut fragmented_blocks);
         let unfragmented_checksum = shrink_2(&mut blocks);
 
-        total += checksum as usize;
-        unfragmented_total += unfragmented_checksum as usize;
+        total += checksum;
+        unfragmented_total += unfragmented_checksum;
     }
 
     output!(total, unfragmented_total)

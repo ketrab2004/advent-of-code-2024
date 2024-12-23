@@ -21,16 +21,14 @@ fn check_move_big_box(map: &Grid, x: isize, y: isize, dx: isize, dy: isize) -> b
         _ => return false
     }
 
-    let success = if dy != 0 {
+    if dy != 0 {
         check_move_big_box(map, x, y + dy, dx, dy)
         && check_move_big_box(map, x + 1, y + dy, dx, dy)
     } else if dx > 0 {
         check_move_big_box(map, x + 1 + dx, y, dx, dy)
     } else {
         check_move_big_box(map, x + dx, y, dx, dy)
-    };
-
-    success
+    }
 }
 
 fn move_big_box(map: &mut Grid, x: isize, y: isize, dx: isize, dy: isize) {

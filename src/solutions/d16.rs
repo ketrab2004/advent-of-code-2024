@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::{HashMap, HashSet, VecDeque}, io::BufRead, usize};
+use std::{cmp::Reverse, collections::{HashMap, HashSet, VecDeque}, io::BufRead};
 use priority_queue::PriorityQueue;
 use crate::{misc::{grid::Grid, option::OptionExt, vector2::directions}, output, Input, Output};
 
@@ -71,10 +71,8 @@ pub fn solve(input: Input) -> Output {
 
             let mut rot = (dir as i32 - current.dir).rem_euclid(directions.len() as i32) as usize;
             rot = rot.min(directions.len() - rot);
-            if rot != 0 {
-                if origin_step.dirs[dir] > current.score + 1000 * rot {
-                    origin_step.dirs[dir] = current.score + 1000 * rot;
-                }
+            if rot != 0 && origin_step.dirs[dir] > current.score + 1000 * rot {
+                origin_step.dirs[dir] = current.score + 1000 * rot;
             }
 
             let step = PathStep {

@@ -3,19 +3,19 @@ use color_eyre::eyre::Result;
 use crate::{misc::option::OptionExt, output, Input, Output};
 
 
-fn count_stones(input: &[i64], depth: u64, previous_steps: &Vec<i64>, cache: &mut HashMap<i64, HashMap<u64, usize>>) -> Result<usize> {
+fn count_stones(input: &[i64], depth: u64, previous_steps: &[i64], cache: &mut HashMap<i64, HashMap<u64, usize>>) -> Result<usize> {
     let mut sum = 0;
 
     for stone in input {
         {
-            let stone_cache = cache.entry(*stone).or_insert(HashMap::new());
+            let stone_cache = cache.entry(*stone).or_default();
             if let Some(cached) = stone_cache.get(&depth) {
                 sum += cached;
                 continue;
             }
         }
 
-        let mut next_steps = previous_steps.clone();
+        let mut next_steps = previous_steps.to_vec();
         next_steps.push(*stone);
 
         let num_length = stone.checked_ilog10().unwrap_or(0) + 1;

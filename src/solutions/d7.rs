@@ -9,7 +9,7 @@ pub enum Operator {
 }
 
 fn get_remaining_results(current_total: i64, operands: &[i64], results: &mut Vec<i64>, allowed_operators: &[Operator]) {
-    if operands.len() == 0 {
+    if operands.is_empty() {
         results.push(current_total);
         return;
     }
@@ -25,7 +25,7 @@ fn get_remaining_results(current_total: i64, operands: &[i64], results: &mut Vec
                 current_total * next,
                 remaining, results, allowed_operators),
             Operator::Concat => get_remaining_results(
-                current_total * 10i32.pow(next.ilog10() as u32 + 1) as i64 + next,
+                current_total * 10i32.pow(next.ilog10() + 1) as i64 + next,
                 remaining, results, allowed_operators)
         }
     }

@@ -47,8 +47,8 @@ impl Iterator for LineIterator {
 
 /// Calculates the cost of taking the given path on the remaining keypads.
 /// Recursing deeper, but going less deep in terms of keypads.
-fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isize)), usize>)], line: LineIterator) -> Result<usize> {
-    if remaining.len() == 0 {
+fn path_go_deeper(remaining: &mut [CachedKeypad], line: LineIterator) -> Result<usize> {
+    if remaining.is_empty() {
         return Ok(line.count() + 1);
     }
     let (keypad, ..) = remaining[0];
@@ -78,15 +78,17 @@ fn path_go_deeper(remaining: &mut [(&Grid, HashMap<((isize, isize), (isize, isiz
     Ok(score)
 }
 
+type CachedKeypad<'a> = (&'a Grid, HashMap<((isize, isize), (isize, isize)), usize>);
+
 /// Returns the number of steps to get from `start` to `end`,
 /// in the topmost (deepest) given keypad.
 /// Summing the steps in less deep keypads for each step.
 fn shortest_path(
-    keypads: &mut [(&Grid, HashMap<((isize, isize), (isize, isize)), usize>)],
+    keypads: &mut [CachedKeypad],
     start: (isize, isize),
     end: (isize, isize)
 ) -> Result<usize> {
-    if keypads.len() <= 0 {
+    if keypads.is_empty() {
         // On the keypad controlled by us, each move (to anywhere) takes 1 step.
         return Ok(1);
     }

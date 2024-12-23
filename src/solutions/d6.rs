@@ -2,9 +2,9 @@ use std::{collections::HashMap, io::BufRead, ops::Rem};
 use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar, vector2::Directions}, output, Input, Output};
 
 
-fn traverse(map: &mut Grid, ux: isize, uy: isize) -> bool {
+/// Returns whether the path loops.
+fn traverse(map: &mut Grid, mut x: isize, mut y: isize) -> bool {
     let directions = isize::DIRECTIONS;
-    let (mut x, mut y) = (ux as isize, uy as isize);
     let mut visited = HashMap::<(isize, isize), [bool; 4]>::new();
     let mut current_direction = 3;
 
@@ -30,7 +30,7 @@ fn traverse(map: &mut Grid, ux: isize, uy: isize) -> bool {
 
                 map.signed_set(x, y, b'X');
 
-                let mut dirs = visited.get(&(x, y)).unwrap_or(&[false; 4]).clone();
+                let mut dirs = *visited.get(&(x, y)).unwrap_or(&[false; 4]);
                 dirs[current_direction] = true;
                 visited.insert((x, y), dirs);
 
@@ -51,7 +51,7 @@ pub fn solve(input: Input) -> Output {
     let (ux, uy) = original_map.find_signed(b'^').unwrap_or_err()?;
 
     let mut map = original_map.clone();
-    assert_eq!(traverse(&mut map, ux, uy), false);
+    assert!(!traverse(&mut map, ux, uy));
 
     let count = map
         .iter()

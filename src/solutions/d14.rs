@@ -1,4 +1,4 @@
-use std::io::BufRead;
+use std::{cmp::Ordering, io::BufRead};
 use color_eyre::eyre::Result;
 use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar}, output, Input, Output};
 
@@ -72,12 +72,16 @@ pub fn solve(input: Input) -> Output {
         x = (x + dx * time).rem_euclid(width);
         y = (y + dy * time).rem_euclid(height);
 
-        let quadrant_x = if x < middle_x { 0 }
-            else if x > middle_x { 1 }
-            else { continue; };
-        let quadrant_y = if y < middle_y { 0 }
-            else if y > middle_y { 1 }
-            else { continue; };
+        let quadrant_x = match x.cmp(&middle_x) {
+            Ordering::Less => 0,
+            Ordering::Greater => 1,
+            Ordering::Equal => continue
+        };
+        let quadrant_y = match y.cmp(&middle_y) {
+            Ordering::Less => 0,
+            Ordering::Greater => 1,
+            Ordering::Equal => continue
+        };
 
         robots_per_quadrant[quadrant_x][quadrant_y] += 1;
     }

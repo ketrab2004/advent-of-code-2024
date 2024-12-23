@@ -12,7 +12,7 @@ lazy_static!{
 }
 
 pub fn pretty_progress_bar(length: u64) -> ProgressBar {
-    let bar = ProgressBar::new(length.into());
+    let bar = ProgressBar::new(length);
     bar.set_style(PROGRESS_STYLE.clone());
     bar.enable_steady_tick(Duration::from_millis(150));
 

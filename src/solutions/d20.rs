@@ -1,13 +1,6 @@
-use std::{collections::{HashMap, HashSet, VecDeque}, io::BufRead, isize, usize};
-use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
+use std::{collections::{HashMap, HashSet, VecDeque}, io::BufRead};
+use crate::{misc::{grid::Grid, option::OptionExt, vector2::Directions}, output, Input, Output};
 
-
-const DIRECTIONS: [(isize, isize); 4] = [
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1)
-];
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct PathState {
@@ -57,7 +50,7 @@ fn count_cheats(
             }
         }
 
-        for (dx, dy) in DIRECTIONS {
+        for (dx, dy) in isize::DIRECTIONS {
             let (nx, ny) = (current.pos.0 + dx, current.pos.1 + dy);
             if visited.contains(&(nx, ny)) {
                 continue;
@@ -100,7 +93,7 @@ pub fn solve(input: Input) -> Output {
     let mut queue = VecDeque::new();
     queue.push_back((end.0, end.1, 0));
     while let Some((x, y, dist)) = queue.pop_front() {
-        for (dx, dy) in DIRECTIONS {
+        for (dx, dy) in isize::DIRECTIONS {
             let (nx, ny) = (x + dx, y + dy);
             if distance_field.contains_key(&(nx, ny))
                 || original_map.signed_get_or_default(nx, ny) == b'#' {

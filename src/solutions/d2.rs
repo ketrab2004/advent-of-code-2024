@@ -49,7 +49,7 @@ pub fn solve(input: Input) -> Output {
             .any(|(i, _num)| {
                 let mut temp = list.clone();
                 temp.remove(i);
-                line_is_safe(temp.iter().map(|n| *n))
+                line_is_safe(temp.iter().copied())
             }
         ) {
             skipped_unsafe_count += 1;

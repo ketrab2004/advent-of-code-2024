@@ -3,8 +3,8 @@ use trie_rs::Trie;
 use crate::{misc::option::OptionExt, output, Input, Output};
 
 
-fn get_combinations(patterns: &Trie<u8>, remaining: &str, mut cache: &mut HashMap<String, Option<usize>>) -> Option<usize> {
-    if remaining.len() <= 0 {
+fn get_combinations(patterns: &Trie<u8>, remaining: &str, cache: &mut HashMap<String, Option<usize>>) -> Option<usize> {
+    if remaining.is_empty() {
         return Some(1);
     }
     if let Some(cached) = cache.get(remaining) {
@@ -19,7 +19,7 @@ fn get_combinations(patterns: &Trie<u8>, remaining: &str, mut cache: &mut HashMa
         };
 
         if partial_result.is_match() {
-            if let Some(combinations) = get_combinations(patterns, &remaining[i + 1..], &mut cache) {
+            if let Some(combinations) = get_combinations(patterns, &remaining[i + 1..], cache) {
                 unique_combinations += combinations;
             }
         }

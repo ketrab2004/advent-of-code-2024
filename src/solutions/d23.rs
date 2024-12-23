@@ -24,7 +24,7 @@ pub fn solve(input: Input) -> Output {
         for i in 0..tos.len()-1 {
             for j in i+1..tos.len() {
                 let mut collection = [
-                    &from,
+                    from,
                     &tos[i],
                     &tos[j]
                 ];
@@ -39,15 +39,15 @@ pub fn solve(input: Input) -> Output {
             }
 
             let mut collection = vec![from];
-            for j in 0..tos.len() {
+            for (j, j_value) in tos.iter().enumerate() {
                 if i == j {
                     continue;
                 }
                 let connections = connections
-                    .get(&tos[j])
+                    .get(j_value)
                     .unwrap_or_err()?;
                 if collection.iter().all(|node| connections.contains(node)) {
-                    collection.push(&tos[j]);
+                    collection.push(j_value);
                 }
             }
             collection.sort();

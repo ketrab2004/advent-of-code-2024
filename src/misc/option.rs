@@ -12,7 +12,7 @@ pub enum OptionError {
 #[allow(dead_code)]
 pub trait OptionExt<T> {
     fn unwrap_or_err(self) -> Result<T, OptionError>;
-    fn is_none_or_err(self) -> Result<bool, OptionError>;
+    fn unwrap_none_or_err(self) -> Result<bool, OptionError>;
 }
 
 impl<T> OptionExt<T> for Option<T> {
@@ -22,7 +22,7 @@ impl<T> OptionExt<T> for Option<T> {
             None => Err(OptionError::None)
         }
     }
-    fn is_none_or_err(self) -> Result<bool, OptionError> {
+    fn unwrap_none_or_err(self) -> Result<bool, OptionError> {
         match self {
             Some(_) => Err(OptionError::Some),
             None => Ok(true)

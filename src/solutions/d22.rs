@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, io::BufRead};
+use std::{collections::{hash_map::Entry, HashMap, HashSet}, io::BufRead};
 use crate::{misc::progress::pretty_progress_bar, output, Input, Output};
 
 
@@ -51,8 +51,8 @@ pub fn solve(input: Input) -> Output {
             if i > 3 {
                 let sequence = (diff_history[i-4], diff_history[i-3], diff_history[i-2], diff_history[i-1]);
                 all_sequences.insert(sequence);
-                if passed_sequences.get(&sequence).is_none() {
-                    passed_sequences.insert(sequence, current);
+                if let Entry::Vacant(entry) = passed_sequences.entry(sequence) {
+                    entry.insert(current);
 
                     if highest_diff_index[price as usize].is_none() {
                         highest_diff_index[price as usize] = Some(i);
