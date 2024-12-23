@@ -6,6 +6,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+automod = "1.0.14"
 chrono = "0.4.38"
 clap = { version = "4.5.21", features = ["derive", "cargo"] }
 color-eyre = "0.6.3"
