@@ -1,7 +1,5 @@
 use std::{collections::HashMap, io::BufRead, ops::Rem};
-use indicatif::{ProgressBar, ProgressStyle};
-
-use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
+use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar}, output, Input, Output};
 
 
 const DIRECTIONS: [(isize, isize); 4] = [
@@ -72,11 +70,7 @@ pub fn solve(input: Input) -> Output {
         .count();
 
 
-    let progress = ProgressBar::new(count as u64);
-    progress.set_style(
-        ProgressStyle::with_template("[{elapsed_precise}] {bar:64} {pos:>4}/{len:4} {eta} {msg}")?
-            .progress_chars("#<-")
-    );
+    let progress = pretty_progress_bar(count as u64);
 
     let mut obstruction_count = 0;
     for (x, y, _) in map.iter().filter(|(_, _, value)| value == &b'X') {

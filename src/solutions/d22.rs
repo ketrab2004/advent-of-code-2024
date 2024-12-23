@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, io::BufRead};
 use indicatif::{ProgressBar, ProgressStyle};
-use crate::{Input, Output, output};
+use crate::{misc::progress::pretty_progress_bar, output, Input, Output};
 
 
 fn mix(num: i64, changed_num: i64) -> i64 {
@@ -68,11 +68,7 @@ pub fn solve(input: Input) -> Output {
         all_passed_sequences.push(passed_sequences);
     }
 
-    let progress = ProgressBar::new(all_sequences.len() as u64);
-    progress.set_style(
-        ProgressStyle::with_template("[{elapsed_precise}] {bar:64} {pos:>4}/{len:4} {eta} {msg}")?
-            .progress_chars("#<-")
-    );
+    let progress = pretty_progress_bar(all_sequences.len() as u64);
     let mut best_banana_winnings = -1;
     for sequence in all_sequences {
         let mut banana_winnings = 0;

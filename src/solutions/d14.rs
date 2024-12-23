@@ -1,7 +1,6 @@
 use std::io::BufRead;
 use color_eyre::eyre::Result;
-use indicatif::ProgressBar;
-use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
+use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar}, output, Input, Output};
 
 
 fn parse_pos(line: &str) -> Result<(isize, isize)> {
@@ -85,7 +84,7 @@ pub fn solve(input: Input) -> Output {
 
     let mut i = 0;
     let max_depth = 10000;
-    let progress = ProgressBar::new(max_depth);
+    let progress = pretty_progress_bar(max_depth as u64);
     loop {
         if check_christmas_tree(robots.as_slice(), width, height) {
             break;

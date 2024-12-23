@@ -1,7 +1,6 @@
 use std::{collections::VecDeque, io::BufRead, iter};
 use color_eyre::eyre::Result;
-use indicatif::{ProgressBar, ProgressStyle};
-use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
+use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar}, output, Input, Output};
 
 
 const DIRECTIONS: [(isize, isize); 4] = [
@@ -70,11 +69,7 @@ pub fn solve(input: Input) -> Output {
 
     grid = Grid::from_size(size as usize, size as usize, b' ');
     let mut game_over_step = (size - 1, size - 1);
-    let progress = ProgressBar::new(steps.len() as u64);
-    progress.set_style(
-        ProgressStyle::with_template("[{elapsed_precise}] {bar:64} {pos:>4}/{len:4} {eta} {msg}")?
-            .progress_chars("#<-")
-    );
+    let progress = pretty_progress_bar(steps.len() as u64);
     for (x, y) in steps {
         grid.signed_set(x, y, b'#');
 

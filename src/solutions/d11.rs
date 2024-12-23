@@ -1,6 +1,5 @@
 use std::{collections::HashMap, io::BufRead};
 use color_eyre::eyre::Result;
-use indicatif::ProgressBar;
 use crate::{misc::option::OptionExt, output, Input, Output};
 
 
@@ -56,28 +55,22 @@ pub fn solve(input: Input) -> Output {
 
     let stones = input.clone().collect::<Result<Vec<i64>,_>>()?;
 
-    let steps = 25;
-    let progress = ProgressBar::new(steps);
     let mut cache = HashMap::new();
     let previous_steps = vec![];
 
+    let steps = 25;
     let mut stone_count = 0;
     for stone in &stones {
         let stones = [*stone];
         stone_count += count_stones(stones.as_slice(), steps, &previous_steps, &mut cache)?;
-        progress.inc(1);
     }
 
 
     let steps = 75;
-    progress.reset();
-    progress.set_length(steps);
-
     let mut stone_count2 = 0;
     for stone in stones {
         let stones = [stone];
         stone_count2 += count_stones(stones.as_slice(), steps, &previous_steps, &mut cache)?;
-        progress.inc(1);
     }
 
     output!(stone_count, stone_count2)

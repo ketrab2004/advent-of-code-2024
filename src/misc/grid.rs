@@ -1,6 +1,7 @@
 use core::str;
-use std::{error::Error, fmt::{Debug, Display}};
+use std::fmt::{Debug, Display};
 use color_eyre::eyre::Result;
+use error_rules::Error;
 use super::option::OptionExt;
 
 
@@ -11,19 +12,12 @@ pub struct Grid {
     data: String
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Error)]
 pub enum GridError {
+    #[error_kind("Grid: Inserted line has different width than grid")]
     DifferentWidth,
+    #[error_kind("Grid: Inserted line is wider than grid")]
     LargerWidth
-}
-impl Error for GridError {}
-impl Display for GridError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            GridError::DifferentWidth => "Inserted line has different width than grid",
-            GridError::LargerWidth => "Inserted line is wider than grid"
-        })
-    }
 }
 
 
@@ -264,8 +258,8 @@ impl Display for Grid {
     }
 }
 
-struct DebugGrid<'a>(&'a str);
-impl<'a> Debug for DebugGrid<'a> {
+struct DebugGridContents<'a>(&'a str);
+impl<'a> Debug for DebugGridContents<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("\"\"\"\n")?;
         f.write_str(&self.0)?;
@@ -279,7 +273,7 @@ impl Debug for Grid {
             .debug_struct("Grid")
             .field("width", &self.width)
             .field("height", &self.height)
-            .field("data", &DebugGrid(&self.data))
+            .field("data", &DebugGridContents(&self.data))
             .finish()
     }
 }
