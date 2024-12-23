@@ -22,6 +22,8 @@ trie-rs = "0.4.2"
 
 
 [dev-dependencies]
+ctor = "0.2.9"
+indoc = "2.0.5"
 aoc-cli = "0.12.0"
 
 [profile.dev.package.backtrace]

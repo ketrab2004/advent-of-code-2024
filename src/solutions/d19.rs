@@ -3,6 +3,7 @@ use trie_rs::Trie;
 use crate::{misc::option::OptionExt, output, Input, Output};
 
 
+/// Returns number of unique combinations of patterns that make up the remaining string.
 fn get_combinations(patterns: &Trie<u8>, remaining: &str, cache: &mut HashMap<String, Option<usize>>) -> Option<usize> {
     if remaining.is_empty() {
         return Some(1);
@@ -33,6 +34,7 @@ fn get_combinations(patterns: &Trie<u8>, remaining: &str, cache: &mut HashMap<St
     unique_combinations
 }
 
+
 pub fn solve(input: Input) -> Output {
     let mut lines = input.lines();
     let patterns = Trie::from_iter(lines
@@ -54,4 +56,23 @@ pub fn solve(input: Input) -> Output {
     }
 
     output!(possible_designs, unique_combinations)
+}
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        r, wr, b, g, bwu, rb, gb, br
+
+        brwrr
+        bggr
+        gbbr
+        rrbgbr
+        ubwu
+        bwurrg
+        brgr
+        bbrgwb
+    "}, output!(6, 16));
 }
