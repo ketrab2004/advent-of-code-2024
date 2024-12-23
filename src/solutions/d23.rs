@@ -60,7 +60,6 @@ pub fn solve(input: Input) -> Output {
             }
         }
     }
-    dbg!(collections.len());
 
     let mut chieftain_connections = 0;
     for collection in collections {

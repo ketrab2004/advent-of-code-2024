@@ -1,6 +1,6 @@
 use std::io::BufRead;
-
 use crate::{misc::option::OptionExt, output, Input, Output};
+
 
 pub fn solve(input: Input) -> Output {
     let mut list_a = Vec::<i32>::new();

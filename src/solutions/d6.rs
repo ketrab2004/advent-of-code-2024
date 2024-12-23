@@ -1,26 +1,19 @@
 use std::{collections::HashMap, io::BufRead, ops::Rem};
-use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar}, output, Input, Output};
-
-
-const DIRECTIONS: [(isize, isize); 4] = [
-    (0, -1),
-    (1, 0),
-    (0, 1),
-    (-1, 0)
-];
+use crate::{misc::{grid::Grid, option::OptionExt, progress::pretty_progress_bar, vector2::Directions}, output, Input, Output};
 
 
 fn traverse(map: &mut Grid, ux: isize, uy: isize) -> bool {
+    let directions = isize::DIRECTIONS;
     let (mut x, mut y) = (ux as isize, uy as isize);
     let mut visited = HashMap::<(isize, isize), [bool; 4]>::new();
-    let mut current_direction = 0;
+    let mut current_direction = 3;
 
     loop {
-        let (dx, dy) = DIRECTIONS[current_direction];
+        let (dx, dy) = directions[current_direction];
         let next = map.signed_get_or_default(x + dx, y + dy);
         match next {
             b'#' | b'O' => {
-                current_direction = (current_direction + 1).rem(DIRECTIONS.len())
+                current_direction = (current_direction + 1).rem(directions.len())
             },
             b'\0' => {
                 map.signed_set(x, y, b'X');

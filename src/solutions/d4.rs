@@ -1,19 +1,9 @@
 use std::io::BufRead;
-use crate::{misc::grid::Grid, output, Input, Output};
+use crate::{misc::{grid::Grid, vector2::Directions}, output, Input, Output};
 
-
-const DIRECTIONS: [(isize, isize); 8] = [
-    (1, 0),
-    (1, -1),
-    (0, -1),
-    (-1, -1),
-    (-1, 0),
-    (-1, 1),
-    (0, 1),
-    (1, 1)
-];
 
 pub fn solve(input: Input) -> Output {
+    let directions = isize::DIAGONAL_DIRECTIONS;
     let grid = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
@@ -28,7 +18,7 @@ pub fn solve(input: Input) -> Output {
         let y = y as isize;
 
         if value == search[0] {
-            for (dx, dy) in DIRECTIONS {
+            for (dx, dy) in directions {
 
                 let mut broke = false;
                 let (mut cur_x, mut cur_y) = (x, y);

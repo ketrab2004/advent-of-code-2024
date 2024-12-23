@@ -1,6 +1,6 @@
 use std::{cmp::Reverse, collections::{HashMap, HashSet, VecDeque}, io::BufRead, usize};
 use priority_queue::PriorityQueue;
-use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
+use crate::{misc::{grid::Grid, option::OptionExt, vector2::directions}, output, Input, Output};
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -9,13 +9,6 @@ struct PathStep {
     pub dir: i32,
     pub score: usize
 }
-
-const DIRECTIONS: [(isize, isize); 4] = [
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1)
-];
 
 fn dir_to_char(dir: usize) -> u8 {
     match dir {
@@ -42,6 +35,7 @@ impl Default for PathStepOrigins {
 
 
 pub fn solve(input: Input) -> Output {
+    let directions = directions();
     let mut map = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
@@ -68,15 +62,15 @@ pub fn solve(input: Input) -> Output {
         }
         let mut origin_step = *origins.get(&current.pos).unwrap_or_err()?;
 
-        for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
+        for (dir, (dx, dy)) in directions.iter().enumerate() {
             let (nx, ny) = (current.pos.0 + dx, current.pos.1 + dy);
             let cell = map.signed_get_or_default(nx, ny);
             if cell == b'#' || cell == b'\0' {
                 continue;
             }
 
-            let mut rot = (dir as i32 - current.dir).rem_euclid(DIRECTIONS.len() as i32) as usize;
-            rot = rot.min(DIRECTIONS.len() - rot);
+            let mut rot = (dir as i32 - current.dir).rem_euclid(directions.len() as i32) as usize;
+            rot = rot.min(directions.len() - rot);
             if rot != 0 {
                 if origin_step.dirs[dir] > current.score + 1000 * rot {
                     origin_step.dirs[dir] = current.score + 1000 * rot;
@@ -123,14 +117,14 @@ pub fn solve(input: Input) -> Output {
         }
         path.insert((x, y));
 
-        for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
+        for (dir, (dx, dy)) in directions.iter().enumerate() {
             let (nx, ny) = (x - dx, y - dy);
             let Some(next) = origins.get(&(nx, ny)) else {
                 continue;
             };
 
-            let mut rot = (dir as i32 - current_dir as i32).rem_euclid(DIRECTIONS.len() as i32) as usize;
-            rot = rot.min(DIRECTIONS.len() - rot);
+            let mut rot = (dir as i32 - current_dir as i32).rem_euclid(directions.len() as i32) as usize;
+            rot = rot.min(directions.len() - rot);
 
             if next.dirs[dir] == score.wrapping_sub(1 + 1000 * rot) {
                 queue.push_back((nx, ny, next.dirs[dir], dir));

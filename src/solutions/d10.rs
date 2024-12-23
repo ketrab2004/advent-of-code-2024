@@ -1,13 +1,6 @@
 use std::{collections::{HashMap, VecDeque}, io::BufRead};
-use crate::{misc::{grid::Grid, option::OptionExt}, output, Input, Output};
+use crate::{misc::{grid::Grid, option::OptionExt, vector2::Directions}, output, Input, Output};
 
-
-const DIRECTIONS: [(isize, isize); 4] = [
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1)
-];
 
 fn char_to_num(c: u8) -> u8 {
     c - b'0'
@@ -38,7 +31,7 @@ pub fn solve(input: Input) -> Output {
 
         let num = char_to_num(value);
 
-        for (dx, dy) in DIRECTIONS {
+        for (dx, dy) in isize::DIRECTIONS {
             let (x2, y2) = (x + dx, y + dy);
 
             let Some(next_value) = map.signed_get(x2, y2) else {

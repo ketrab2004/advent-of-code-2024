@@ -1,13 +1,6 @@
 use std::{collections::{HashSet, VecDeque}, io::BufRead};
-use crate::{misc::grid::Grid, output, Input, Output};
+use crate::{misc::{grid::Grid, vector2::{directions, Directions}}, output, Input, Output};
 
-
-pub const DIRECTIONS: [(isize, isize); 4] = [
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1)
-];
 
 #[derive(Debug, Clone)]
 struct Field {
@@ -17,13 +10,14 @@ struct Field {
 }
 
 fn has_edge(grid: &Grid, x: isize, y: isize, crop: u8, dir: usize) -> bool {
-    let (dx, dy) = DIRECTIONS[dir];
+    let (dx, dy) = isize::DIRECTIONS[dir];
     let (nx, ny) = (x + dx, y + dy);
 
     grid.signed_get_or_default(nx, ny) != crop
 }
 
 pub fn solve(input: Input) -> Output {
+    let directions = directions();
     let grid = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
@@ -50,7 +44,7 @@ pub fn solve(input: Input) -> Output {
         queue.push_back((x, y));
 
         while let Some((x, y)) = queue.pop_front() {
-            for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
+            for (dir, (dx, dy)) in directions.iter().enumerate() {
                 let (nx, ny) = (x + dx, y + dy);
 
                 if has_edge(&grid, x, y, crop, dir) {
@@ -77,7 +71,7 @@ pub fn solve(input: Input) -> Output {
         let mut used_edges = HashSet::new();
 
         for (x, y) in field.blocks.iter() {
-            for (dir, (dx, dy)) in DIRECTIONS.iter().enumerate() {
+            for (dir, (dx, dy)) in directions.iter().enumerate() {
                 if used_edges.contains(&(*x, *y, dir)) {
                     continue;
                 }
@@ -88,8 +82,8 @@ pub fn solve(input: Input) -> Output {
                 used_edges.insert((nx, ny, dir));
 
                 let mut i = 0;
-                let search_dir = (dir + 1) % DIRECTIONS.len();
-                let (dx, dy) = DIRECTIONS[search_dir];
+                let search_dir = (dir + 1) % directions.len();
+                let (dx, dy) = directions[search_dir];
                 loop {
                     let (nx, ny) = (x + i * dx, y + i * dy);
                     if !field.blocks.contains(&(nx, ny)) || !has_edge(&grid, nx, ny, field.crop, dir) {
@@ -100,8 +94,8 @@ pub fn solve(input: Input) -> Output {
                 }
 
                 i = 0;
-                let search_dir = (dir + DIRECTIONS.len() - 1) % DIRECTIONS.len();
-                let (dx, dy) = DIRECTIONS[search_dir];
+                let search_dir = (dir + directions.len() - 1) % directions.len();
+                let (dx, dy) = directions[search_dir];
                 loop {
                     let (nx, ny) = (x + i * dx, y + i * dy);
                     if !field.blocks.contains(&(nx, ny)) || !has_edge(&grid, nx, ny, field.crop, dir) {
