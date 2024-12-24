@@ -28,6 +28,7 @@ pub fn solve_day(day: u32, input: Input) -> Option<Output> {
         21 => Some(d21::solve(input)),
         22 => Some(d22::solve(input)),
         23 => Some(d23::solve(input)),
+        24 => Some(d24::solve(input)),
         _ => None
     }
 }
