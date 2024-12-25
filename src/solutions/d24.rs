@@ -1,5 +1,6 @@
-use std::{collections::{HashMap, VecDeque}, io::BufRead};
+use std::{collections::{HashMap, HashSet, VecDeque}, io::BufRead};
 use color_eyre::eyre::Result;
+use itertools::Itertools;
 use regex::Regex;
 use regex_macro::regex;
 use crate::{misc::option::OptionExt, output, Input, Output};
@@ -7,6 +8,17 @@ use crate::{misc::option::OptionExt, output, Input, Output};
 
 fn numbered_node_name(prefix: char, number: i32) -> String {
     format!("{prefix}{number:0>2}")
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum NodeType {
+    Input,
+
+    InputXor,
+    Output,
+
+    InputXorAnd, InputAnd,
+    Carry
 }
 
 fn operate(operation_regex: &Regex, operation: &str, variables: &mut HashMap<String, i8>) -> Result<i8> {
@@ -26,92 +38,99 @@ fn operate(operation_regex: &Regex, operation: &str, variables: &mut HashMap<Str
     Ok(output)
 }
 
-fn check_single_dependencies<'a>(node: &String, remaining_ops: &mut Vec<&str>, dependencies: &'a HashMap<String, Vec<(String, Vec<String>)>>, swaps: &mut Vec<String>) -> Result<Vec<&'a String>> {
-    let mut correct_deps = Vec::new();
+/// Checks the dependents of the given node, assuming it is of the given type.
+/// Adds the incorrect dependent to the swaps,
+/// except if there are more than 1 incorrect dependents.
+///
+/// Returns whether the given node is incorrect.
+/// When more than one of its dependents is incorrect,
+/// or if it is an output node but doesn't start with 'z',
+fn check_node_dependents(node: &String, typ: NodeType, dependents: &HashMap<String, Vec<(String, String)>>, swaps: &mut HashSet<String>) -> bool {
+    if typ == NodeType::Output && !node.starts_with('z') {
+        return true;
+    }
+
+    let Some(deps) = dependents.get(node) else {
+        return typ != NodeType::Output;
+    };
+
+    let mut allowed_deps = match typ {
+        NodeType::Input => [
+            ("XOR", NodeType::InputXor),
+            ("AND", NodeType::InputAnd)
+        ].as_slice(),
+        NodeType::InputXor => [
+            ("XOR", NodeType::Output),
+            ("AND", NodeType::InputXorAnd)
+        ].as_slice(),
+        NodeType::Output => [].as_slice(),
+        NodeType::InputXorAnd | NodeType::InputAnd => &[
+            ("OR", NodeType::Carry)
+        ].as_slice(),
+        NodeType::Carry => &[
+            ("AND", NodeType::InputXorAnd),
+            ("XOR", NodeType::Output)
+        ].as_slice()
+    }.to_vec();
+
+    // z09
+    // bqw
+    // jcp
+    // z27
+    // -ckj
+    // -bch
+    // -kfp
+
+
+    let mut to_swap = None;
+    for (op, dep) in deps {
+        let mut found = None;
+        for (i, (allowed_op, next_type)) in allowed_deps.iter().enumerate() {
+            if *allowed_op == op {
+                found = Some((i, *next_type));
+                break;
+            }
+        }
+        let Some((i, next_type)) = found else {
+            println!("Under {node} ({typ:?}) {dep} has incorrect connection {op:?}");
+            if to_swap.is_some() {
+                return true;
+            }
+            to_swap = Some(dep);
+            continue;
+        };
+
+        allowed_deps.remove(i);
+
+        let incorrect = check_node_dependents(dep, next_type, dependents, swaps);
+        if incorrect {
+            if to_swap.is_some() {
+                return true;
+            }
+            to_swap = Some(dep);
+        }
+    }
+
+    if let Some(to_swap) = to_swap {
+        swaps.insert(to_swap.clone());
+    }
+
+    false
+}
+
+fn check_node_dependencies(node: &String, typ: NodeType, dependencies: &HashMap<String, Vec<(String, Vec<String>)>>, swaps: &mut HashSet<String>) -> bool {
+    if typ == NodeType::Input && !(node.starts_with('x') || node.starts_with('y')) {
+        return true;
+    }
 
     let Some(deps) = dependencies.get(node) else {
-        return Ok(Vec::new());
+        return false;
     };
-    for (op, dep) in deps {
-        if let Some(index) = remaining_ops.iter().position(|x| x == op) {
-            remaining_ops.remove(index);
-            correct_deps.extend(dep);
-        } else {
-            swaps.push(node.clone());
-        }
-    }
 
-    Ok(correct_deps)
+    false
 }
 
-fn check_output_dependencies(depth: i32, dependencies: &HashMap<String, Vec<(String, Vec<String>)>>, swaps: &mut Vec<String>) -> Result<()> {
-    let current = numbered_node_name('z', depth);
 
-    let mut remaining = vec!["XOR"];
-    let higher = check_single_dependencies(&current, &mut remaining, dependencies, swaps)?;
-
-    if depth <= 1 {
-        return Ok(());
-    }
-
-    remaining.clear();
-    remaining.extend_from_slice(&["OR", "XOR"]);
-    for high in higher {
-        let had_or = remaining.contains(&"OR");
-        let even_higher = check_single_dependencies(high, &mut remaining, dependencies, swaps)?;
-
-        if had_or && !remaining.contains(&"OR") {
-            for higher in even_higher {
-                let mut higher_remaining = vec!["AND", "XOR"];
-                check_single_dependencies(higher, &mut higher_remaining, dependencies, swaps)?;
-            }
-        }
-    }
-
-    Ok(())
-}
-
-// fn check_deeper<'a>(node: &String, dependents: &'a HashMap<String, Vec<(String, String)>>, remaining_ops: &mut Vec<&str>) -> Result<Iterator<Item=&'a String>> {
-//     let deps = dependents.get(node).unwrap_or_err()?;
-
-// }
-
-fn check_dependents<'a>(depth: i32, dependents: &'a HashMap<String, Vec<(String, String)>>, incorrect: &mut Vec<&'a String>) -> Result<()> {
-    let nodes = [numbered_node_name('x', depth), numbered_node_name('y', depth)];
-
-    for node in nodes {
-        dbg!(&node);
-        let deps = dependents.get(&node).unwrap_or_err()?;
-        let mut remaining_ops = vec!["XOR", "AND"];
-        for (op, dep) in deps {
-            if let Some(index) = remaining_ops.iter().position(|x| x == op) {
-                remaining_ops.remove(index);
-                let next_op = match op.as_str() {
-                    "XOR" => "XOR",
-                    "AND" => "OR",
-                    _ => unreachable!()
-                };
-                let Some(deps) = dependents.get(dep) else {
-                    incorrect.push(dep);
-                    continue;
-                };
-                let mut found = false;
-                for (op, dep) in deps {
-                    if op == next_op && !found {
-                        found = true;
-                        continue;
-                    }
-
-                    incorrect.push(dep);
-                }
-            } else {
-                incorrect.push(dep);
-            }
-        }
-    }
-
-    Ok(())
-}
 
 pub fn solve(input: Input) -> Output {
     let input_regex = regex!(r"([\w\d]+): (\d)");
@@ -165,7 +184,7 @@ pub fn solve(input: Input) -> Output {
     // graphviz:
     // for (dest, (dep, op)) in &dependencies {
     //     for from in dep {
-    //         println!("{from} -> {dest} [label=\"{op}\"]");
+    //         println!("{from} -> {dest} [xlabel=\"{op}\"]");
     //     }
     // }
 
@@ -176,17 +195,24 @@ pub fn solve(input: Input) -> Output {
         i += 1;
     }
 
-    let mut swaps = Vec::new();
+    // let mut swaps = Vec::new();
     // for i in 0..=i {
     //     check_output_dependencies(i, &dependencies, &mut swaps)?;
     // }
+    // for i in 2..i-1 {
+    //     check_dependents(i, &dependents, &mut swaps)?;
+    // }
+    let mut swaps = HashSet::new();
+    // debug_assert!(!check_node(&numbered_node_name('x', 2), NodeType::Input, &dependents, &mut swaps));
     for i in 2..i-1 {
-        check_dependents(i, &dependents, &mut swaps)?;
+        debug_assert!(!check_node_dependents(&numbered_node_name('x', i), NodeType::Input, &dependents, &mut swaps));
+        debug_assert!(!check_node_dependents(&numbered_node_name('y', i), NodeType::Input, &dependents, &mut swaps));
     }
-    swaps.sort();
     debug_assert_eq!(swaps.len(), 8, "{swaps:?}");
 
-    output!(output, swaps.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(","))
+    debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
+    debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
+    output!(output, swaps.iter().sorted().map(|s| s.as_str()).collect::<Vec<_>>().join(","))
 }
 
 
