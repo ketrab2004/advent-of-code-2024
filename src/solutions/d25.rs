@@ -21,9 +21,7 @@ pub fn solve(input: Input) -> Output {
                     Err(_) => None
                 }).peekable();
 
-            if lines.peek().is_none() {
-                return None;
-            }
+            lines.peek()?;
             Some(Grid::from(lines))
         }
     ) {

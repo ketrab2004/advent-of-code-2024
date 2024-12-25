@@ -64,22 +64,23 @@ fn check_node_dependents(node: &String, typ: NodeType, dependents: &HashMap<Stri
             ("AND", NodeType::InputXorAnd)
         ].as_slice(),
         NodeType::Output => [].as_slice(),
-        NodeType::InputXorAnd | NodeType::InputAnd => &[
+        NodeType::InputXorAnd | NodeType::InputAnd => [
             ("OR", NodeType::Carry)
         ].as_slice(),
-        NodeType::Carry => &[
+        NodeType::Carry => [
             ("AND", NodeType::InputXorAnd),
             ("XOR", NodeType::Output)
         ].as_slice()
     }.to_vec();
 
-    // z09
-    // bqw
-    // jcp
-    // z27
+    // dhq - z18
+    // z22 - pdg
+    // hbs - kfp
+    // jcp - z27
+    // - tfc
+    // - bch
     // -ckj
-    // -bch
-    // -kfp
+    // dhq,hbs,jcp,kfp,pdg,z18,z22,z27
 
 
     let mut to_swap = None;
@@ -176,7 +177,7 @@ pub fn solve(input: Input) -> Output {
         }
     }
     while let Some(current) = queue.pop_front() {
-        if let Err(_) = operate(operation_regex, current.as_str(), &mut variables) {
+        if operate(operation_regex, current.as_str(), &mut variables).is_err() {
             queue.push_back(current);
         };
     }
@@ -208,10 +209,11 @@ pub fn solve(input: Input) -> Output {
         debug_assert!(!check_node_dependents(&numbered_node_name('x', i), NodeType::Input, &dependents, &mut swaps));
         debug_assert!(!check_node_dependents(&numbered_node_name('y', i), NodeType::Input, &dependents, &mut swaps));
     }
+    swaps.remove(&numbered_node_name('z', 45));
     debug_assert_eq!(swaps.len(), 8, "{swaps:?}");
 
-    debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
-    debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
+    // debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
+    // debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
     output!(output, swaps.iter().sorted().map(|s| s.as_str()).collect::<Vec<_>>().join(","))
 }
 
