@@ -29,3 +29,18 @@ pub fn solve(input: Input) -> Output {
 
     output!(sum, similarity_score)
 }
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        3   4
+        4   3
+        2   5
+        1   3
+        3   9
+        3   3
+    "}, output!(11, 31));
+}

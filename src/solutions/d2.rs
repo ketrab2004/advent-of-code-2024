@@ -58,3 +58,18 @@ pub fn solve(input: Input) -> Output {
 
     output!(total - unsafe_count, total - skipped_unsafe_count)
 }
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        7 6 4 2 1
+        1 2 7 8 9
+        9 7 6 2 1
+        1 3 2 4 5
+        8 6 4 4 1
+        1 3 6 7 9
+    "}, output!(2, 4));
+}

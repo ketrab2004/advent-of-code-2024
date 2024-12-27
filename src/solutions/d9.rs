@@ -130,3 +130,13 @@ pub fn solve(input: Input) -> Output {
 
     output!(total, unfragmented_total)
 }
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        2333133121414131402
+    "}, output!(1928, 2858));
+}

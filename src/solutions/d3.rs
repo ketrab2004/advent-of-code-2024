@@ -32,3 +32,13 @@ pub fn solve(input: Input) -> Output {
 
     output!(sum, more_precise_sum)
 }
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))
+    "}, output!(161, 48));
+}

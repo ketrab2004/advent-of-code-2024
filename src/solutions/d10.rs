@@ -63,3 +63,20 @@ pub fn solve(input: Input) -> Output {
 
     output!(routes, full_routes)
 }
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        89010123
+        78121874
+        87430965
+        96549874
+        45678903
+        32019012
+        01329801
+        10456732
+    "}, output!(36, 81));
+}

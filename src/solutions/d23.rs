@@ -77,3 +77,44 @@ pub fn solve(input: Input) -> Output {
 
     output!(chieftain_connections, largest_collection.join(","))
 }
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        kh-tc
+        qp-kh
+        de-cg
+        ka-co
+        yn-aq
+        qp-ub
+        cg-tb
+        vc-aq
+        tb-ka
+        wh-tc
+        yn-cg
+        kh-ub
+        ta-co
+        de-co
+        tc-td
+        tb-wq
+        wh-td
+        ta-ka
+        td-qp
+        aq-cg
+        wq-ub
+        ub-vc
+        de-ta
+        wq-aq
+        wq-vc
+        wh-yn
+        ka-de
+        kh-ta
+        co-tc
+        wh-qp
+        tb-vc
+        td-yn
+    "}, output!(7, "co,de,ka,ta"));
+}

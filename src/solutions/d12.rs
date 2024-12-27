@@ -114,3 +114,29 @@ pub fn solve(input: Input) -> Output {
 
     output!(cost, bulk_cost)
 }
+
+
+#[test]
+fn test() {
+    use crate::misc::test::test_solver;
+
+    test_solver(solve, indoc::indoc! {"
+        AAAA
+        BBCD
+        BBCC
+        EEEC
+    "}, output!(140, 80));
+
+    test_solver(solve, indoc::indoc! {"
+        RRRRIICCFF
+        RRRRIICCCF
+        VVRRRCCFFF
+        VVRCCCJFFF
+        VVVVCJJCFE
+        VVIVCCJJEE
+        VVIIICJJEE
+        MIIIIIJJEE
+        MIIISIJEEE
+        MMMISSJEEE
+    "}, output!(1930, 1206));
+}
