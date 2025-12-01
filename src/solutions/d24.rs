@@ -119,12 +119,13 @@ fn check_node_dependents(node: &String, typ: NodeType, dependents: &HashMap<Stri
     false
 }
 
-fn check_node_dependencies(node: &String, typ: NodeType, dependencies: &HashMap<String, Vec<(String, Vec<String>)>>, swaps: &mut HashSet<String>) -> bool {
+#[allow(dead_code)]
+fn check_node_dependencies(node: &String, typ: NodeType, dependencies: &HashMap<String, Vec<(String, Vec<String>)>>, _swaps: &mut HashSet<String>) -> bool {
     if typ == NodeType::Input && !(node.starts_with('x') || node.starts_with('y')) {
         return true;
     }
 
-    let Some(deps) = dependencies.get(node) else {
+    let Some(_deps) = dependencies.get(node) else {
         return false;
     };
 
@@ -196,24 +197,16 @@ pub fn solve(input: Input) -> Output {
         i += 1;
     }
 
-    // let mut swaps = Vec::new();
-    // for i in 0..=i {
-    //     check_output_dependencies(i, &dependencies, &mut swaps)?;
-    // }
-    // for i in 2..i-1 {
-    //     check_dependents(i, &dependents, &mut swaps)?;
-    // }
     let mut swaps = HashSet::new();
-    // debug_assert!(!check_node(&numbered_node_name('x', 2), NodeType::Input, &dependents, &mut swaps));
     for i in 2..i-1 {
         debug_assert!(!check_node_dependents(&numbered_node_name('x', i), NodeType::Input, &dependents, &mut swaps));
         debug_assert!(!check_node_dependents(&numbered_node_name('y', i), NodeType::Input, &dependents, &mut swaps));
     }
-    swaps.remove(&numbered_node_name('z', 45));
-    debug_assert_eq!(swaps.len(), 8, "{swaps:?}");
 
-    // debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
-    // debug_assert!(!check_node_dependents(&numbered_node_name('x', 0), NodeType::Input, &dependents, &mut swaps));
+    // remove last carry node that starts with a 'z'
+    swaps.remove(&numbered_node_name('z', 45));
+
+    debug_assert_eq!(swaps.len(), 8, "{swaps:?}");
     output!(output, swaps.iter().sorted().map(|s| s.as_str()).collect::<Vec<_>>().join(","))
 }
 

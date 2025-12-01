@@ -5,6 +5,7 @@ use color_eyre::eyre::Result;
 use misc::output::OutputValue;
 
 mod solutions;
+mod solutions2;
 mod misc;
 
 
@@ -66,8 +67,10 @@ fn main() {
         None => BufReader::new(Box::new(io::stdin()))
     };
 
+    println!("Running day {day} of year {year}");
     let result = match year {
         2024 => solutions::solve_day(day, input),
+        2025 => solutions2::solve_day(day, input),
         _ => None
     };
 

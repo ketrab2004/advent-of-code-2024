@@ -55,9 +55,6 @@ pub fn solve(input: Input) -> Output {
         }).push(depths);
     }
 
-    dbg!(&keys);
-    dbg!(&locks);
-
     let mut count = 0;
     for key in keys {
         'locks: for lock in &locks {
@@ -119,6 +116,5 @@ fn test() {
         #.#..
         #.#.#
         #####
-
     "}, output!(3));
 }
