@@ -1,15 +1,15 @@
 use std::io::BufRead;
-use crate::{output, Input, Output};
-
+use crate::{Input, Output, output};
 
 pub fn solve(input: Input) -> Output {
 
     for line in input.lines() {
         let line = line?;
 
+
     }
 
-    output!(21)
+    output!(-1)
 }
 
 
@@ -19,5 +19,5 @@ fn test() {
 
     test_solver(solve, indoc::indoc! {"
 
-    "}, output!(21));
+    "}, output!(-1));
 }
