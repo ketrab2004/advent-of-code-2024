@@ -25,10 +25,10 @@ pub fn solve(input: Input) -> Output {
 
     let mut pos = get_forklift_positions(&grid);
     let forklifts = pos.len();
-    let mut aa = 0;
+    let mut removed_paperrolls = 0;
 
     while pos.len() > 0 {
-        aa += pos.len();
+        removed_paperrolls += pos.len();
 
         for (x, y) in pos {
             grid.set(x, y, b'o');
@@ -37,7 +37,7 @@ pub fn solve(input: Input) -> Output {
         pos = get_forklift_positions(&grid);
     }
 
-    output!(forklifts, aa)
+    output!(forklifts, removed_paperrolls)
 }
 
 
