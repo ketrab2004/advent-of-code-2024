@@ -11,6 +11,7 @@ pub fn solve_day(day: u32, input: Input) -> Option<Output> {
         4 => Some(d4::solve(input)),
         5 => Some(d5::solve(input)),
         6 => Some(d6::solve(input)),
+        7 => Some(d7::solve(input)),
         _ => None
     }
 }
