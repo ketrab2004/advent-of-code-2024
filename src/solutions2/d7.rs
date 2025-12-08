@@ -33,7 +33,7 @@ pub fn solve(input: Input) -> Output {
         y += 1;
     }
 
-    let timeline_count: i64 = beams.iter().map(|(_x, timestep)| *timestep).sum();
+    let timeline_count: i64 = beams.iter().map(|(_x, timelines)| *timelines).sum();
 
     output!(split_count, timeline_count)
 }
