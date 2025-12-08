@@ -268,7 +268,7 @@ impl Grid {
     }
 
     /// Gets a linear iterator over the grid, with coordinates included.
-    pub fn iter(&self) -> GridIterator {
+    pub fn iter(&self) -> GridIterator<'_> {
         GridIterator {
             grid: self,
             index: 0
@@ -276,7 +276,7 @@ impl Grid {
     }
 
     /// Gets a linear iterator over the grid, with (signed) coordinates included.
-    pub fn iter_signed(&self) -> GridIteratorSigned {
+    pub fn iter_signed(&self) -> GridIteratorSigned<'_> {
         GridIteratorSigned {
             grid: self,
             index: 0

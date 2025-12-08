@@ -28,16 +28,15 @@ fn make_connections(junctions: &[Coord], connection_count: usize) -> Result<Vec<
         circuits.push(HashSet::from([junction.clone()]));
     }
 
-    let mut possible_connections = Vec::new();
-    for (i, a) in junctions.iter().enumerate() {
-        for b in junctions[i + 1..].iter() {
-            possible_connections.push((dist_cubed(a, b), *a, *b))
-        }
-    }
-    possible_connections.sort_by_key(|c| c.0);
-    possible_connections.truncate(connection_count);
+    let possible_connections: Vec<_> = junctions
+        .iter()
+        .tuple_combinations()
+        .map(|(a, b)| (dist_cubed(a, b), *a, *b))
+        .sorted_by_key(|c| c.0)
+        .take(connection_count)
+        .collect();
 
-    for (dist, a, b) in possible_connections {
+    for (_dist, a, b) in possible_connections {
         let a_circuit_i = circuits.iter().position(|n| n.contains(&a)).unwrap_or_err()?;
         let b_circuit_i = circuits.iter().position(|n| n.contains(&b)).unwrap_or_err()?;
 
@@ -110,8 +109,6 @@ pub fn solve(input: Input) -> Output {
 
     let circuits = make_connections(&positions, positions.len())?;
 
-    // dbg!(make_connections(&positions, 10)?.iter().map(|c| c.len()).sorted().rev().collect::<Vec<_>>());
-
     let last_connection = find_connections(&positions)?;
 
     output!(
@@ -125,7 +122,33 @@ pub fn solve(input: Input) -> Output {
 fn test() {
     use crate::misc::test::test_solver;
 
-    // make_connections(&positions, 10)?.iter().map(|c| c.len()).sorted().rev().collect::<Vec<_>>()
+    assert_eq!(make_connections(&[
+        (162,817,812),
+        (57,618,57),
+        (906,360,560),
+        (592,479,940),
+        (352,342,300),
+        (466,668,158),
+        (542,29,236),
+        (431,825,988),
+        (739,650,466),
+        (52,470,668),
+        (216,146,977),
+        (819,987,18),
+        (117,168,530),
+        (805,96,715),
+        (346,949,466),
+        (970,615,88),
+        (941,993,340),
+        (862,61,35),
+        (984,92,344),
+        (425,690,689)
+    ], 10).unwrap()
+        .iter().map(|c| c.len())
+        .sorted().rev()
+        .take(3).collect::<Vec<_>>(),
+        vec![5, 4, 2]
+    );
 
     test_solver(solve, indoc::indoc! {"
         162,817,812
