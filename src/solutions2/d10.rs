@@ -33,31 +33,50 @@ fn machine_solve_indicators(machine: &Machine) -> usize {
     0
 }
 
+fn machine_solve_power_limited(machine: &Machine, limit: usize) -> usize {
+    dbg!(limit);
+    let mut stack = Vec::new();
 
-fn machine_solve_power(machine: &Machine) -> usize {
-    let mut queue = VecDeque::new();
+    stack.push((0, machine.joltage_requirements.iter().map(|_| 0).collect::<Vec<_>>(), 0));
 
-    queue.push_back((0, machine.joltage_requirements.iter().map(|_| 0).collect::<Vec<_>>()));
-
-    while let Some((depth, indicators)) = queue.pop_front() {
+    while let Some((depth, indicators, last_button)) = stack.pop() {
         if indicators == machine.joltage_requirements {
             return depth;
         }
 
-        if indicators.iter().enumerate().any(|(i, v)| *v > machine.joltage_requirements[i]) {
+        if depth > limit {
+            continue;
+
+        } else if last_button >= machine.button_indicators.len() {
+            continue;
+
+        } else if indicators.iter().enumerate().any(|(i, v)| *v > machine.joltage_requirements[i]) {
             continue;
         }
 
-        for (i, button) in machine.button_indicators.iter().enumerate() {
-            let mut op_indicators = indicators.clone();
-            for indicator in button {
-                op_indicators[*indicator] += 1;
-            }
-            queue.push_back((depth + 1, op_indicators));
+
+        let button = &machine.button_indicators[last_button];
+        let mut op_indicators = indicators.clone();
+        for indicator in button {
+            op_indicators[*indicator] += 1;
         }
+        stack.push((depth, indicators, last_button + 1));
+        stack.push((depth + 1, op_indicators, 0));
     }
 
     0
+}
+
+fn machine_solve_power(machine: &Machine) -> usize {
+    let mut depth = 1;
+    let mut result = 0;
+
+    while result <= 0 {
+        result = machine_solve_power_limited(machine, depth);
+        depth += 1
+    }
+
+    result
 }
 
 pub fn solve(input: Input) -> Output {
@@ -97,15 +116,17 @@ pub fn solve(input: Input) -> Output {
     let mut min_button_press_indicator_sum = 0;
     let mut min_button_press_power_sum = 0;
 
-    // (min_button_press_indicator_sum, min_button_press_power_sum) = machines.par_iter().map(|machine| {
-    //     (machine_solve_indicators(machine), machine_solve_power(machine))
-    // }).reduce(|| (0, 0), |(a, b), (c, d)| (a + c, b + d));
-
-    for machine in machines {
-        min_button_press_indicator_sum += machine_solve_indicators(&machine);
-        min_button_press_power_sum += machine_solve_power(&machine);
+    (min_button_press_indicator_sum, min_button_press_power_sum) = machines.par_iter().map(|machine| {
+        let result = (machine_solve_indicators(machine), machine_solve_power(machine));
         progress.inc(1);
-    }
+        result
+    }).reduce(|| (0, 0), |(a, b), (c, d)| (a + c, b + d));
+
+    // for machine in machines {
+    //     min_button_press_indicator_sum += machine_solve_indicators(&machine);
+    //     min_button_press_power_sum += machine_solve_power(&machine);
+    //     progress.inc(1);
+    // }
 
     output!(min_button_press_indicator_sum, min_button_press_power_sum)
 }
