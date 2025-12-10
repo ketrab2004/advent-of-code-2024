@@ -1,6 +1,6 @@
-use std::{collections::{HashMap, VecDeque}, io::BufRead};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-
+use std::{collections::{VecDeque}, io::BufRead};
+use color_eyre::eyre::Result;
+use good_lp::{Expression, Solution, SolverModel, default_solver, variable, variables};
 use crate::{Input, Output, misc::{option::OptionExt, progress::pretty_progress_bar}, output};
 
 
@@ -33,50 +33,31 @@ fn machine_solve_indicators(machine: &Machine) -> usize {
     0
 }
 
-fn machine_solve_power_limited(machine: &Machine, limit: usize) -> usize {
-    dbg!(limit);
-    let mut stack = Vec::new();
-
-    stack.push((0, machine.joltage_requirements.iter().map(|_| 0).collect::<Vec<_>>(), 0));
-
-    while let Some((depth, indicators, last_button)) = stack.pop() {
-        if indicators == machine.joltage_requirements {
-            return depth;
-        }
-
-        if depth > limit {
-            continue;
-
-        } else if last_button >= machine.button_indicators.len() {
-            continue;
-
-        } else if indicators.iter().enumerate().any(|(i, v)| *v > machine.joltage_requirements[i]) {
-            continue;
-        }
-
-
-        let button = &machine.button_indicators[last_button];
-        let mut op_indicators = indicators.clone();
-        for indicator in button {
-            op_indicators[*indicator] += 1;
-        }
-        stack.push((depth, indicators, last_button + 1));
-        stack.push((depth + 1, op_indicators, 0));
+fn machine_solve_power(machine: &Machine) -> Result<usize> {
+    let mut var = variables! {};
+    let mut vars = Vec::new();
+    for _ in machine.button_indicators.iter() {
+        vars.push(var.add(variable().min(0).integer()));
     }
 
-    0
-}
+    let mut problem = var.minimise(vars.iter().fold(Expression::from(0), |acc, &v| acc + v))
+        .using(default_solver);
+    problem.set_parameter("log", "0");
 
-fn machine_solve_power(machine: &Machine) -> usize {
-    let mut depth = 1;
-    let mut result = 0;
+    for (i, joltage) in machine.joltage_requirements.iter().enumerate() {
+        let mut sum = Expression::from(0);
+        for (j, indicator) in machine.button_indicators.iter().enumerate() {
+            if indicator.contains(&i) {
+                sum += vars[j];
+            }
+        }
 
-    while result <= 0 {
-        result = machine_solve_power_limited(machine, depth);
-        depth += 1
+        problem.add_constraint(sum.eq(*joltage as i32));
     }
 
-    result
+    let solution = problem.solve()?;
+
+    Ok(vars.iter().map(|var| solution.value(*var) as usize).sum())
 }
 
 pub fn solve(input: Input) -> Output {
@@ -116,17 +97,11 @@ pub fn solve(input: Input) -> Output {
     let mut min_button_press_indicator_sum = 0;
     let mut min_button_press_power_sum = 0;
 
-    (min_button_press_indicator_sum, min_button_press_power_sum) = machines.par_iter().map(|machine| {
-        let result = (machine_solve_indicators(machine), machine_solve_power(machine));
+    for machine in machines {
+        min_button_press_indicator_sum += machine_solve_indicators(&machine);
+        min_button_press_power_sum += machine_solve_power(&machine)?;
         progress.inc(1);
-        result
-    }).reduce(|| (0, 0), |(a, b), (c, d)| (a + c, b + d));
-
-    // for machine in machines {
-    //     min_button_press_indicator_sum += machine_solve_indicators(&machine);
-    //     min_button_press_power_sum += machine_solve_power(&machine);
-    //     progress.inc(1);
-    // }
+    }
 
     output!(min_button_press_indicator_sum, min_button_press_power_sum)
 }
