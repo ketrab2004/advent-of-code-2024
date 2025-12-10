@@ -35,7 +35,7 @@ impl Default for PathStepOrigins {
 
 
 pub fn solve(input: Input) -> Output {
-    let directions = directions();
+    let directions = directions::<isize>();
     let mut map = Grid::from(input
         .lines()
         .map(|line| line.unwrap())

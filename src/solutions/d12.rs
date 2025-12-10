@@ -17,7 +17,7 @@ fn has_edge(grid: &Grid, x: isize, y: isize, crop: u8, dir: usize) -> bool {
 }
 
 pub fn solve(input: Input) -> Output {
-    let directions = directions();
+    let directions = directions::<isize>();
     let grid = Grid::from(input
         .lines()
         .map(|line| line.unwrap())
