@@ -21,7 +21,7 @@ fn machine_solve_indicators(machine: &Machine) -> usize {
             return depth;
         }
 
-        for (i, button) in machine.button_indicators.iter().enumerate() {
+        for button in machine.button_indicators.iter() {
             let mut op_indicators = indicators.clone();
             for indicator in button {
                 op_indicators[*indicator] = !op_indicators[*indicator];
